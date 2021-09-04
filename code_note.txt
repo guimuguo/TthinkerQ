@@ -1,0 +1,7 @@
+
+===query workflow===
+receive and enqueue: 
+client --msg--> worker's run() call update_tasks() ---> server receive ---> query_que enqueue()
+
+fetch by comper and spawn tasks
+comper --if(no big task and no reg task)--> refill_Qreg() ---> query_que.dequeue() --> task_spawn(query) --> new output file for all compers --> add tasks
