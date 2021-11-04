@@ -9,11 +9,16 @@
 #include "TaskProgMap.h"
 #include <cstring>
 #include <stack>
+#include <list>
 #include <bits/stdc++.h>
+#include "rwlock.h"
+#include <map>
+#include "msgtool.h"
+
+
 // If not Linux (e.g. Windows), include direct.h because it doesn't work in Linux.
 #ifndef __linux__
 #include <direct.h>
-#include <map>
 #endif
 
 
@@ -27,36 +32,20 @@ atomic<int> global_num_idle(0);
 atomic<bool> global_end_label(false);
 bool server_exit = false;
 
-map<int, map<int, FILE *> > fout_map;
-
 // In micro sec
 #define WAIT_TIME_WHEN_IDLE 100000
-
-// Used when refill from data_stack in comper
-size_t MINI_BATCH_NUM = 40;
-
-// Global big task queue
-void *global_Qbig;
-// Global big task queue mtx
-mutex Qbig_mtx;
 
 //output path
 string out_path = "ol_out";
 
-// A queue to manage big file names for spill/refill operations
-conque<string> global_Lbig;
-// Number of files in global_Lbig
-atomic<int> global_Lbig_num;
+msg_queue_notifier* notifier;
+long type;
 
 size_t Qbig_capacity = 16;
 // How many big tasks per file to spill
 int BT_TASKS_PER_FILE = 4;
 // A threshold to refill Qbig
 int BT_THRESHOLD_FOR_REFILL = 8;
-// Global regular task queue
-void *global_Qreg;
-// Global regular task queue mtx
-mutex Qreg_mtx;
 
 size_t Qreg_capacity = 512;
 // How many reg tasks to spill.
@@ -64,6 +53,10 @@ int RT_TASKS_PER_FILE = 32;
 // Threshold to refill Qreg.
 int RT_THRESHOLD_FOR_REFILL = 128;
 
+int activeQ_num(0);
+rwlock activeQ_lock;
+void *global_activeQ_list;
+int activeQ_list_capacity = 10;
 
 struct qinfo
 {
@@ -82,18 +75,11 @@ struct qinfo
 TaskProgMap* global_prog_map;
 conque<qinfo> query_que;
 
-// A queue to manage reg file names for spill/refill operations
-conque<string> global_Lreg;
-// Number of files in global_Lreg
-atomic<int> global_Lreg_num;
 string TASK_DISK_BUFFER_DIR;
 
 // Number of compers. Compers means threads
 size_t num_compers = 32;
 int BIGTASK_THRESHOLD = 200;
-
-mutex data_stack_mtx;
-void *global_data_stack;
 
 // Number of tasks assigned to each comper
 size_t tasks_per_fetch_g = 1;

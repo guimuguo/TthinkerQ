@@ -17,6 +17,8 @@ using namespace std::chrono;
 
 #pragma warning (disable:4996)
 
+map<int, int> id2index_map;
+
 double gdmin_deg_ratio;
 int gnmin_size;
 int gnmax_size;
@@ -34,27 +36,27 @@ struct VERTEX // variables start with 'b' is boolean, 'n' is integer
 	bool bto_be_extended;
 };
 
-obinstream & operator>>(obinstream & m, VERTEX & v)
-{
-    m >> v.nvertex_no;
-    m >> v.nclique_deg;
-    m >> v.ncand_deg;
-    m >> v.nlvl2_nbs;
-    m >> v.bis_cand;
-    m >> v.bto_be_extended;
-    return m;
-}
-
-ibinstream & operator<<(ibinstream & m, const VERTEX & v)
-{
-	m << v.nvertex_no;
-	m << v.nclique_deg;
-	m << v.ncand_deg;
-	m << v.nlvl2_nbs;
-	m << v.bis_cand;
-	m << v.bto_be_extended;
-	return m;
-}
+//obinstream & operator>>(obinstream & m, VERTEX & v)
+//{
+//    m >> v.nvertex_no;
+//    m >> v.nclique_deg;
+//    m >> v.ncand_deg;
+//    m >> v.nlvl2_nbs;
+//    m >> v.bis_cand;
+//    m >> v.bto_be_extended;
+//    return m;
+//}
+//
+//ibinstream & operator<<(ibinstream & m, const VERTEX & v)
+//{
+//	m << v.nvertex_no;
+//	m << v.nclique_deg;
+//	m << v.ncand_deg;
+//	m << v.nlvl2_nbs;
+//	m << v.bis_cand;
+//	m << v.bto_be_extended;
+//	return m;
+//}
 
 ofbinstream & operator>>(ofbinstream & m, VERTEX & v)
 {
@@ -195,116 +197,116 @@ public:
 	inline int CalcMaxExts(int nmin_clq_totaldeg, int nclique_size, int num_of_cands);
 	inline void CalcMinDegs(int *pmin_degs, int num_of_vertices);
 
-	friend ibinstream& operator<<(ibinstream& m, const Graph& g)
-	{
-		int mnum_of_vertices = g.mnum_of_vertices;
-		m << mnum_of_vertices;
-		m << g.mblvl2_flag;
-
-		//int **mppadj_lists, *mpadj_list_buf, **mpplvl2_nbs;
-		vector<char> adj_size_vec;
-		for(int i = 0; i < mnum_of_vertices; i++)
-		{
-			if(g.mppadj_lists[i] != NULL)
-				adj_size_vec.push_back('1');
-			else
-				adj_size_vec.push_back('0');
-		}
-		m << adj_size_vec;
-
-		for(int i = 0; i < mnum_of_vertices; i++)
-		{
-			if(g.mppadj_lists[i] != NULL)
-			{
-				int size = g.mppadj_lists[i][0];
-				m << size;
-				for(int j = 1; j <= size; j++)
-					m << g.mppadj_lists[i][j];
-			}
-		}
-
-		if(g.mblvl2_flag)
-		{
-			vector<char> lvl2_size_vec;
-			for(int i = 0; i < mnum_of_vertices; i++)
-			{
-				if(g.mpplvl2_nbs[i] != NULL)
-					lvl2_size_vec.push_back('1');
-				else
-					lvl2_size_vec.push_back('0');
-			}
-			m << lvl2_size_vec;
-
-			for(int i = 0; i < mnum_of_vertices; i++)
-			{
-				if(g.mpplvl2_nbs[i] != NULL)
-				{
-					int size = g.mpplvl2_nbs[i][0];
-					m << size;
-					for(int j = 1; j <= size; j++)
-						m << g.mpplvl2_nbs[i][j];
-				}
-			}
-		}
-		return m;
-	}
-
-	friend obinstream& operator>>(obinstream& m, Graph& g)
-	{
-		int mnum_of_vertices;
-		m >> mnum_of_vertices;
-		g.mnum_of_vertices = mnum_of_vertices;
-		m >> g.mblvl2_flag;
-
-		vector<char> adj_size_vec;
-
-		m >> adj_size_vec;
-
-		int **ppadj_lists;
-		ppadj_lists = new int*[mnum_of_vertices];
-
-		memset(ppadj_lists, 0, sizeof(int*)*mnum_of_vertices);
-		for(int i = 0; i < adj_size_vec.size(); i++)
-		{
-			if(adj_size_vec[i] == '1')
-			{
-				int size;
-				m >> size;
-				ppadj_lists[i] = new int[size+1];
-				ppadj_lists[i][0] = size;
-				for(int j = 1; j <= size; j++)
-					m >> ppadj_lists[i][j];
-			}
-
-		}
-		g.mppadj_lists = ppadj_lists;
-
-		if(g.mblvl2_flag)
-		{
-			vector<char> lvl2_size_vec;
-			m >> lvl2_size_vec;
-
-			int **pplvl2_nbs;
-			pplvl2_nbs = new int*[mnum_of_vertices];
-			memset(pplvl2_nbs, 0, sizeof(int*)*mnum_of_vertices);
-			for(int i = 0; i < lvl2_size_vec.size(); i++)
-			{
-				if(lvl2_size_vec[i] == '1')
-				{
-					int size;
-					m >> size;
-					pplvl2_nbs[i] = new int[size+1];
-					pplvl2_nbs[i][0] = size;
-					for(int j = 1; j <= size; j++)
-						m >> pplvl2_nbs[i][j];
-				}
-
-			}
-			g.mpplvl2_nbs = pplvl2_nbs;
-		}
-
-		return m;
-	}
+//	friend ibinstream& operator<<(ibinstream& m, const Graph& g)
+//	{
+//		int mnum_of_vertices = g.mnum_of_vertices;
+//		m << mnum_of_vertices;
+//		m << g.mblvl2_flag;
+//
+//		//int **mppadj_lists, *mpadj_list_buf, **mpplvl2_nbs;
+//		vector<char> adj_size_vec;
+//		for(int i = 0; i < mnum_of_vertices; i++)
+//		{
+//			if(g.mppadj_lists[i] != NULL)
+//				adj_size_vec.push_back('1');
+//			else
+//				adj_size_vec.push_back('0');
+//		}
+//		m << adj_size_vec;
+//
+//		for(int i = 0; i < mnum_of_vertices; i++)
+//		{
+//			if(g.mppadj_lists[i] != NULL)
+//			{
+//				int size = g.mppadj_lists[i][0];
+//				m << size;
+//				for(int j = 1; j <= size; j++)
+//					m << g.mppadj_lists[i][j];
+//			}
+//		}
+//
+//		if(g.mblvl2_flag)
+//		{
+//			vector<char> lvl2_size_vec;
+//			for(int i = 0; i < mnum_of_vertices; i++)
+//			{
+//				if(g.mpplvl2_nbs[i] != NULL)
+//					lvl2_size_vec.push_back('1');
+//				else
+//					lvl2_size_vec.push_back('0');
+//			}
+//			m << lvl2_size_vec;
+//
+//			for(int i = 0; i < mnum_of_vertices; i++)
+//			{
+//				if(g.mpplvl2_nbs[i] != NULL)
+//				{
+//					int size = g.mpplvl2_nbs[i][0];
+//					m << size;
+//					for(int j = 1; j <= size; j++)
+//						m << g.mpplvl2_nbs[i][j];
+//				}
+//			}
+//		}
+//		return m;
+//	}
+//
+//	friend obinstream& operator>>(obinstream& m, Graph& g)
+//	{
+//		int mnum_of_vertices;
+//		m >> mnum_of_vertices;
+//		g.mnum_of_vertices = mnum_of_vertices;
+//		m >> g.mblvl2_flag;
+//
+//		vector<char> adj_size_vec;
+//
+//		m >> adj_size_vec;
+//
+//		int **ppadj_lists;
+//		ppadj_lists = new int*[mnum_of_vertices];
+//
+//		memset(ppadj_lists, 0, sizeof(int*)*mnum_of_vertices);
+//		for(int i = 0; i < adj_size_vec.size(); i++)
+//		{
+//			if(adj_size_vec[i] == '1')
+//			{
+//				int size;
+//				m >> size;
+//				ppadj_lists[i] = new int[size+1];
+//				ppadj_lists[i][0] = size;
+//				for(int j = 1; j <= size; j++)
+//					m >> ppadj_lists[i][j];
+//			}
+//
+//		}
+//		g.mppadj_lists = ppadj_lists;
+//
+//		if(g.mblvl2_flag)
+//		{
+//			vector<char> lvl2_size_vec;
+//			m >> lvl2_size_vec;
+//
+//			int **pplvl2_nbs;
+//			pplvl2_nbs = new int*[mnum_of_vertices];
+//			memset(pplvl2_nbs, 0, sizeof(int*)*mnum_of_vertices);
+//			for(int i = 0; i < lvl2_size_vec.size(); i++)
+//			{
+//				if(lvl2_size_vec[i] == '1')
+//				{
+//					int size;
+//					m >> size;
+//					pplvl2_nbs[i] = new int[size+1];
+//					pplvl2_nbs[i][0] = size;
+//					for(int j = 1; j <= size; j++)
+//						m >> pplvl2_nbs[i][j];
+//				}
+//
+//			}
+//			g.mpplvl2_nbs = pplvl2_nbs;
+//		}
+//
+//		return m;
+//	}
 
 	friend ifbinstream& operator<<(ifbinstream& m,  const Graph& g)
 	{
@@ -610,7 +612,6 @@ void Graph::CompressGraph(VERTEX *pvertices, int num_of_cands)
 	ppnew_lvl2_nbs = new int*[num_of_cands];
 
 	//translate candidate vertex id to index
-	map<int, int> id2index_map;
 	index2id = new int[num_of_cands];
 	for(i=0;i<num_of_cands;i++)
 	{

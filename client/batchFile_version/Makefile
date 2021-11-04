@@ -1,5 +1,5 @@
 CCOMPILE=g++
-CPPFLAGS= -O2
+CPPFLAGS= -I ../../system -O2
 
 all: run
 

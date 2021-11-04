@@ -20,7 +20,7 @@
 //##
 //########################################################################
 
-#include "qc_app.h"
+#include "kernel_app.h"
 #include <math.h> // used for ceil method, as it won't compile without it on Windows.
 
 #include <iostream>
@@ -84,12 +84,10 @@ int main(int argc, char **argv)
     if (argc > 10)
         BT_TASKS_PER_FILE = atoi(argv[10]);
     if (argc > 11)
-        MINI_BATCH_NUM = atoi(argv[11]);
-    if (argc > 12)
         RT_TASKS_PER_FILE = atoi(argv[12]);
-    if (argc > 13)
+    if (argc > 12)
         BT_THRESHOLD_FOR_REFILL = atoi(argv[13]);
-    if (argc > 14)
+    if (argc > 13)
         RT_THRESHOLD_FOR_REFILL = atoi(argv[14]);
 
     cout << "input_path:" << argv[1] << endl;
@@ -102,7 +100,6 @@ int main(int argc, char **argv)
     cout << "Qbig_capacity:" << Qbig_capacity << endl;
     cout << "Qreg_capacity:" << Qreg_capacity << endl;
     cout << "BT_TASKS_PER_FILE:" << BT_TASKS_PER_FILE << endl;
-    cout << "MINI_BATCH_NUM:" << MINI_BATCH_NUM << endl;
     cout << "RT_TASKS_PER_FILE:" << RT_TASKS_PER_FILE << endl;
     cout << "BT_THRESHOLD_FOR_REFILL:" << BT_THRESHOLD_FOR_REFILL << endl;
     cout << "RT_THRESHOLD_FOR_REFILL:" << RT_THRESHOLD_FOR_REFILL << endl;

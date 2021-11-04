@@ -22,37 +22,22 @@ public:
 		return prog->query_id;
 	}
 
-	//todo (delete) prog initialization is moved to add_task()
-//	Task(TaskID tid, TaskID parent_tid, int query_id){
-//		prog = new task_prog(tid, parent_tid, query_id);
-//	}
-//
-//	Task(TaskID tid, int query_id)
+
+//	friend ibinstream &operator<<(ibinstream &m, const Task &t)
 //	{
-//		prog = new task_prog(tid, -1, query_id);
+//		m << t.context;
+//		m << t.prog->tid;
+//		return m;
 //	}
 //
-//    virtual ~Task()
-//    {
-//        if(prog != NULL)
-//        	delete prog;
-//    }
-
-	friend ibinstream &operator<<(ibinstream &m, const Task &t)
-	{
-		m << t.context;
-		m << t.prog->tid;
-		return m;
-	}
-
-	friend obinstream &operator>>(obinstream &m, Task &t)
-	{
-		m >> t.context;
-		TaskID task_id;
-		m >> task_id;
-		t.prog = global_prog_map->get(task_id);
-		return m;
-	}
+//	friend obinstream &operator>>(obinstream &m, Task &t)
+//	{
+//		m >> t.context;
+//		TaskID task_id;
+//		m >> task_id;
+//		t.prog = global_prog_map->get(task_id);
+//		return m;
+//	}
 
 	friend ifbinstream &operator<<(ifbinstream &m, const Task &t)
 	{

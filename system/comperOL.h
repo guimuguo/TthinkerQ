@@ -14,15 +14,14 @@ using namespace std::chrono;
 
 #define SEQNO_LIMIT 9223372036854775807
 
-template <class TaskT, class DataT, class QueryT>
+template <class TaskT, class QueryT>
 class Comper
 {
 public:
-    typedef Comper<TaskT, DataT, QueryT> ComperT;
+    typedef Comper<TaskT, QueryT> ComperT;
     // Used in worker.h
     typedef TaskT TaskType;
     // Used in worker.h
-    typedef DataT DataType;
     typedef typename TaskT::ContextType ContextT;
 
     char outpath[200];
@@ -36,10 +35,7 @@ public:
 
     TaskID cur_tid;
     int cur_qid;
-    int spawn_qid;
     string q_msg;
-
-    typedef stack<qinfo> DataStack;//todo delete
 
     typedef std::chrono::_V2::steady_clock::time_point timepoint;
     // Comper's start time
@@ -49,10 +45,26 @@ public:
 
     thread main_thread;
 
-    DataStack &data_stack = *(DataStack *)global_data_stack;//todo delete
     typedef deque<TaskT *> TaskQ;
-    TaskQ &Qreg = *(TaskQ *)global_Qreg;
-    TaskQ &Qbig = *(TaskQ *)global_Qbig;
+
+    struct task_container
+    {
+		int qid;
+		mutex Qreg_mtx, Qbig_mtx;
+		TaskQ Qreg, Qbig;
+		conque<string> Lreg, Lbig;
+		QueryT q;
+		map<int, FILE *> fout_map;
+
+		task_container(int id){
+			qid = id;
+		}
+    };
+
+    typedef list<task_container*> Qlist;
+    Qlist & activeQ_list = *(Qlist *)global_activeQ_list;
+
+    task_container* tc;
 
 	TaskID get_next_taskID() ////take it
 	{
@@ -63,6 +75,11 @@ public:
 		assert(seqno < SEQNO_LIMIT);
 		return id;
 	}
+    
+    int get_queryID() 
+    {
+        return cur_qid;
+    }
 
 	void backtrack(task_prog * prog){
 		prog->prog_lock.lock();
@@ -81,12 +98,34 @@ public:
 
 				if(parent_id == -1)
 				{
-					for(int i=0; i<num_compers; i++)
-					{
-						fclose(fout_map[query_id][i]);
-					}
-					cout<<"[INFO] Query "<<query_id<<" is done."<<endl;
+
 					flag = false;
+
+					if(!postprocess(tc->q)) {
+						//remove the query from activeQ_list
+						activeQ_lock.wrlock();
+						auto it = activeQ_list.begin();
+						for(; it != activeQ_list.end(); ++it){
+							tc = *it;
+							if(tc->qid == query_id){
+								//--------
+								for(int i=0; i<num_compers; i++)
+									fclose(tc->fout_map[i]);
+								delete tc;
+								activeQ_list.erase(it);
+								activeQ_num--;
+
+								cout<<"[INFO] Query "<<query_id<<" is done."<<endl;
+								sprintf(outpath, "%d", query_id);
+								notifier->send_msg(type, outpath);
+
+								break;
+							}
+						}
+						assert(it != activeQ_list.end());
+						activeQ_lock.unlock();
+					}
+
 				} else {
 					prog = global_prog_map->get(parent_id);
 					prog->prog_lock.lock();
@@ -110,17 +149,17 @@ public:
     }
 
     // UDF1
-    virtual bool task_spawn(QueryT q) = 0;
+    virtual bool task_spawn(QueryT &q) = 0;
 
     // UDF2
-    virtual void compute(ContextT &context) = 0;
+    virtual void compute(ContextT &context, QueryT &q) = 0;
     // UDF2 wrapper
     void compute(TaskT *task)
     {
-    	gfpout = fout_map[task->get_qid()][thread_id];
+    	gfpout = tc->fout_map[thread_id];// todo put output in tc
     	cur_tid = task->get_id();
     	cur_qid = task->get_qid();
-        compute(task->context);// compute(task->context, task);
+        compute(task->context, tc->q);// compute(task->context, task);
         backtrack(task->prog);
     }
 
@@ -130,9 +169,12 @@ public:
         return false;
     }
 
-    //UDF4: qyeryLoader ==============================
-	virtual QueryT toQuery(string& line) = 0; //this is what user specifies!!!!!!
+    //UDF4: queryLoader ==============================
+	virtual void toQuery(string& line, QueryT& q) = 0; //this is what user specifies!!!!!!
 
+	virtual bool postprocess(QueryT& q) {//called at the end of a stage, returns false if the query is done.
+		return false;
+	}
 
     void start(int thread_id)
     {
@@ -165,7 +207,7 @@ public:
 	void create_output_path(const char* msg){
 		//create folder outpath (qid_query)
 		strcpy(outpath, out_path.c_str());
-		sprintf(qfile, "/query%d_", spawn_qid);
+		sprintf(qfile, "/query%d_", cur_qid);
 		strcat(outpath, qfile);
 		strcat(outpath, msg);
 		recursive_mkdir(outpath);
@@ -178,20 +220,19 @@ public:
 			sprintf(comper_id, "/%d", i);
 			strcat(comper_file, comper_id);
 
-			fout_map[spawn_qid][i] = fopen(comper_file, "wt");
+			tc->fout_map[i] = fopen(comper_file, "wt");
 		}
 	}
 
     bool refill_Qbig()
     {
         string file;
-        bool succ = global_Lbig.dequeue(file);
+        bool succ = tc->Lbig.dequeue(file);
         if (!succ)
             // "global_Lbig" is empty
             return false; 
         else
         {
-            global_Lbig_num--;
             ofbinstream in(file.c_str());
             while (!in.eof())
             {
@@ -213,12 +254,11 @@ public:
     bool refill_Qreg()
     {
         string file;
-        bool succ = global_Lreg.dequeue(file);
-        // 1- Lreg is not empty, refill from disk.
+        bool succ = tc->Lreg.dequeue(file);
+        // Lreg is not empty, refill from disk.
         if (succ)
         {
             log("Comper:refill from Lreg !!");
-            global_Lreg_num--;
             ofbinstream in(file.c_str());
             while (!in.eof())
             {
@@ -234,40 +274,7 @@ public:
             }
             return true;
         }
-        // 2- Check data_stack to refill
-        else
-        {
-//            data_stack_mtx.lock();
-//            if (!data_stack.empty())
-//            {
-//            	qinfo spawn_qinfo = data_stack.top();
-//            	data_stack.pop();
-//            	data_stack_mtx.unlock();
-//            	QueryT q = toQuery(spawn_qinfo.q);
-//            	spawn_qid = spawn_qinfo.qid;
-//            	q_msg = spawn_qinfo.q;
-//            	if(!task_spawn(q))
-//            		cout<<"[INFO] Query "<<spawn_qinfo.qid<<" \""<<spawn_qinfo.q<<"\" spawns no task."<<endl;
-//				return true;
-//            }
-//            data_stack_mtx.unlock();
-
-
-        	qinfo spawn_qinfo;
-        	bool succ = query_que.dequeue(spawn_qinfo);
-			// if query_que is not empty, spawn tasks from query_que.
-			if (succ)
-			{
-				QueryT q = toQuery(spawn_qinfo.q);
-				spawn_qid = spawn_qinfo.qid;
-				q_msg = spawn_qinfo.q;
-				if(!task_spawn(q))
-					cout<<"[INFO] Query "<<spawn_qinfo.qid<<" \""<<spawn_qinfo.q<<"\" spawns no task."<<endl;
-				return true;
-			}
-            // Nothing to refill.
-            return false;
-        }
+        else return false;
     }
 
     void spill_Qbig()
@@ -275,15 +282,15 @@ public:
         int i = 0;
         // Fetch tasks into local queue first, to avoid locking while spilling to disk.
         queue<TaskT *> collector;
-        while (i < BT_TASKS_PER_FILE && !Qbig.empty())
+        while (i < BT_TASKS_PER_FILE && !tc->Qbig.empty())
         {
             // Get a task from the tail
-            TaskT *t = Qbig.back();
-            Qbig.pop_back();
+            TaskT *t = tc->Qbig.back();
+            tc->Qbig.pop_back();
             collector.push(t);
             i++;
         }
-        Qbig_mtx.unlock();
+        tc->Qbig_mtx.unlock();
 
         if (!collector.empty())
         {
@@ -302,8 +309,7 @@ public:
             }
 
             bigTask_out.close();
-            global_Lbig.enqueue(fname);
-            global_Lbig_num++;
+            tc->Lbig.enqueue(fname);
         }
     }
 
@@ -311,14 +317,14 @@ public:
     {
         int i = 0;
         queue<TaskT *> collector;
-        while (i < RT_TASKS_PER_FILE && !Qreg.empty())
+        while (i < RT_TASKS_PER_FILE && !tc->Qreg.empty())
         {
-            TaskT *t = Qreg.back();
-            Qreg.pop_back();
+            TaskT *t = tc->Qreg.back();
+            tc->Qreg.pop_back();
             collector.push(t);
             i++;
         }
-        Qreg_mtx.unlock();
+        tc->Qreg_mtx.unlock();
 
         if (!collector.empty())
         {
@@ -335,16 +341,14 @@ public:
                 delete t;
             }
             regTask_out.close();
-            global_Lreg.enqueue(fname);
-            global_Lreg_num++;
+            tc->Lreg.enqueue(fname);
         }
     }
 
     //for task spawn
     bool add_root_task(TaskT *task)
     {
-    	create_output_path(q_msg.c_str());
-    	task->prog = new task_prog(get_next_taskID(), -1, spawn_qid);
+    	task->prog = new task_prog(get_next_taskID(), -1, cur_qid);
     	global_prog_map->insert(task->prog->tid, task->prog);
 
         if (is_bigTask(task))
@@ -390,113 +394,220 @@ public:
 
     void add_bigTask(TaskT *task)
     {
-        Qbig_mtx.lock();
+        tc->Qbig_mtx.lock();
         // Check if spill is needed.
-        while (Qbig.size() >= Qbig_capacity)
+        while (tc->Qbig.size() >= Qbig_capacity)
         {
             spill_Qbig();
-            Qbig_mtx.lock();
+            tc->Qbig_mtx.lock();
         }
-        Qbig.push_back(task);
-        Qbig_mtx.unlock();
+        tc->Qbig.push_back(task);
+        tc->Qbig_mtx.unlock();
     }
 
     void add_regTask(TaskT *task)
     {
-        Qreg_mtx.lock();
-        while (Qreg.size() >= Qreg_capacity)
+        tc->Qreg_mtx.lock();
+        while (tc->Qreg.size() >= Qreg_capacity)
         {
             spill_Qreg();
-            Qreg_mtx.lock();
+            tc->Qreg_mtx.lock();
         }
-        Qreg.push_back(task);
-        Qreg_mtx.unlock();
+        tc->Qreg.push_back(task);
+        tc->Qreg_mtx.unlock();
     }
 
     bool get_and_process_tasks()
     {
-        // 1- Check Qbig first
-        // - if Qbig's size is less than Qbig_capacity, refill using Lbig
-        // - if Qbig is not empty, pop a task and compute.
-        // - if Qbig is empty, check Qreg
-        // 2- Check Qreg
-        // - if Qreg's size is less than Qreg_capacity, refill using Lreg
-        // - if Qreg is not empty, pop a task
-        // - if Qreg is empty, check data_array
+    	//check activeQ_list:
+		// 1- Check Qbig first
+		// - if Qbig's size is less than Qbig_capacity, refill using Lbig
+		// - if Qbig is not empty, pop a task and compute.
+		// - if Qbig is empty, check Qreg
+		// 2- Check Qreg
+		// - if Qreg's size is less than Qreg_capacity, refill using Lreg
+		// - if Qreg is not empty, pop a task
+		// - if Qreg is empty, check active_Qlist
         TaskT *task = NULL;
-
-        if (Qbig_mtx.try_lock())
+        activeQ_lock.rdlock();
+        if(!activeQ_list.empty())
         {
-            if (Qbig.size() < BT_THRESHOLD_FOR_REFILL)
-            {
-                Qbig_mtx.unlock();
-                refill_Qbig();
-            }
-            else
-                Qbig_mtx.unlock();
+        	bool refilled = false;
+        	for(auto it = activeQ_list.begin(); it != activeQ_list.end(); ++it)
+			{
+        		tc = *it;
 
-            if (Qbig_mtx.try_lock())
-            {
-                if (!Qbig.empty())
-                {
-                    task = Qbig.front();
-                    Qbig.pop_front();
+				if (tc->Qbig_mtx.try_lock())
+				{
+					if (tc->Qbig.size() < BT_THRESHOLD_FOR_REFILL)
+					{
+						tc->Qbig_mtx.unlock();
+						refilled = refill_Qbig();
+					}
+					else
+						tc->Qbig_mtx.unlock();
 
-                    Qbig_mtx.unlock();
-                    compute(task);
+					if (tc->Qbig_mtx.try_lock())
+					{
+						if (!tc->Qbig.empty())
+						{
+							task = tc->Qbig.front();
+							tc->Qbig.pop_front();
 
-                    delete task;
-                    return true;
-                }
-                else
-                    Qbig_mtx.unlock();
-            }
+							tc->Qbig_mtx.unlock();
+							activeQ_lock.unlock();
+							compute(task);
+
+							delete task;
+							return true;
+						}
+						else
+							tc->Qbig_mtx.unlock();
+					}
+				}
+
+				// Means Qbig is empty
+				if (task == NULL)
+				{
+					//try lock until the last one in activeQ_list
+					if (next(it) != activeQ_list.end())
+					{
+						if(tc->Qreg_mtx.try_lock())
+						{
+							// Refill Qreg using Lreg.
+							if (tc->Qreg.size() < RT_THRESHOLD_FOR_REFILL)
+							{
+								tc->Qreg_mtx.unlock();
+								refilled = refill_Qreg();
+							}
+							else
+								tc->Qreg_mtx.unlock();
+
+							queue<TaskT *> collector;
+							size_t tasks_per_fetch = tasks_per_fetch_g; // _g: global variable
+							if(tc->Qreg_mtx.try_lock())
+							{
+								while (!tc->Qreg.empty() && tasks_per_fetch > 0)
+								{
+									TaskT *task = tc->Qreg.front();
+									tc->Qreg.pop_front();
+									collector.push(task);
+									tasks_per_fetch--;
+								}
+								tc->Qreg_mtx.unlock();
+
+								if (collector.empty() && !refilled)
+								{
+									log("collector is empty...");
+									continue;
+								}
+
+								activeQ_lock.unlock();
+								// Process tasks in "collector"
+								while (!collector.empty())
+								{
+									TaskT *task = collector.front();
+									collector.pop();
+									compute(task);
+									delete task;
+								}
+								return true;
+							}
+						}
+					}
+					else
+					{
+						tc->Qreg_mtx.lock(); //try lock until the last one
+						// Refill Qreg using Lreg.
+						if (tc->Qreg.size() < RT_THRESHOLD_FOR_REFILL)
+						{
+							tc->Qreg_mtx.unlock();
+							refilled = refill_Qreg();
+						}
+						else
+							tc->Qreg_mtx.unlock();
+
+						queue<TaskT *> collector;
+						size_t tasks_per_fetch = tasks_per_fetch_g; // _g: global variable
+						tc->Qreg_mtx.lock();
+						while (!tc->Qreg.empty() && tasks_per_fetch > 0)
+						{
+							TaskT *task = tc->Qreg.front();
+							tc->Qreg.pop_front();
+							collector.push(task);
+							tasks_per_fetch--;
+						}
+						tc->Qreg_mtx.unlock();
+
+						if (collector.empty() && !refilled)
+						{
+							log("collector is empty...");
+							continue;
+						}
+
+						activeQ_lock.unlock();
+						// Process tasks in "collector"
+						while (!collector.empty())
+						{
+							TaskT *task = collector.front();
+							collector.pop();
+							compute(task);
+							delete task;
+						}
+						return true;
+					}
+				}
+			}
         }
+        activeQ_lock.unlock();
+        //being here means did not get any task
+        bool succ = false;
+        if(!query_que.empty()){
+        	activeQ_lock.wrlock();
+			//case activeQ_list may be full but task num is less than comper num
+			if(activeQ_num < activeQ_list_capacity && !query_que.empty()){
+				activeQ_num++;
+				activeQ_lock.unlock();
+				qinfo spawn_qinfo;
+				succ = query_que.dequeue(spawn_qinfo);
+				// if query_que is not empty, spawn tasks from query_que.
+				if (succ)
+				{
+					tc = new task_container(spawn_qinfo.qid);
 
-        // Means Qbig is empty
-        if (task == NULL) 
-        {
-            Qreg_mtx.lock();
-            // Refill Qreg using Lreg.
-            // If Lreg is empty check data_array.
-            bool refilled = false;
-            if (Qreg.size() < RT_THRESHOLD_FOR_REFILL)
-            {
-                Qreg_mtx.unlock();
-                refilled = refill_Qreg();
-            }
-            else
-                Qreg_mtx.unlock();
+					cur_qid = spawn_qinfo.qid;
+					q_msg = spawn_qinfo.q;
+					//create output file
+					create_output_path(q_msg.c_str());
+					gfpout = tc->fout_map[thread_id];
+					toQuery(spawn_qinfo.q, tc->q);
 
-            queue<TaskT *> collector;
-            size_t tasks_per_fetch = tasks_per_fetch_g; // _g: global variable
-            Qreg_mtx.lock();
-            while (!Qreg.empty() && tasks_per_fetch > 0)
-            {
-                TaskT *task = Qreg.front();
-                Qreg.pop_front();
-                collector.push(task);
-                tasks_per_fetch--;
-            }
-            Qreg_mtx.unlock();
+					if(!task_spawn(tc->q))
+					{
+						//close output file
+						for(int i=0; i<num_compers; i++)
+							fclose(tc->fout_map[i]);
 
-            if (collector.empty() && !refilled)
-            {
-                log("collector is empty...");
-                return false;
-            }
+						delete tc;
+						activeQ_lock.wrlock();
+						activeQ_num--;
+						activeQ_lock.unlock();
 
-            // Process tasks in "collector"
-            while (!collector.empty())
-            {
-                TaskT *task = collector.front();
-                collector.pop();
-                compute(task);
-                delete task;
-            }
+						cout<<"[INFO] Query "<<cur_qid<<" \""<<spawn_qinfo.q<<"\" spawns no task."<<endl;
 
-            return true;
+						sprintf(outpath, "%d", cur_qid);
+						notifier->send_msg(type, outpath);
+					}
+					else{
+						activeQ_lock.wrlock();
+						activeQ_list.push_back(tc);
+						activeQ_lock.unlock();
+					}
+				}
+			} else activeQ_lock.unlock();
         }
+        //being here means no task in activeQ_lock and can not spawn q in query_que
+        return succ;
     }
 
     void run()

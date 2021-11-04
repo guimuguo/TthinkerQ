@@ -1,129 +1,69 @@
-#include "tools/msgtool.h"
+#include "msgtool.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
 #include <algorithm>
-#include "utils/time.h"
+#include "time.h"
 using namespace std;
 
 //usage:
 //arg1: input file
 //- one line per query
-//- format: query_id query_text
 
-//arg2: N
-//- number of queries per batch for processing
-
-//arg3: output file (optional)
-//- default file: batch_out.txt
-
-struct id_time
-{
-	int id;
-	double time;
-	double rate;
-
-	inline bool operator<(const id_time& rhs) const
-	{
-		return id < rhs.id;
-	}
-
-	inline bool operator==(const id_time& rhs) const
-	{
-		return id == rhs.id;
-	}
-};
 
 int main(int argc, char *argv[])
 {
 	//load all queries
-	int N=atoi(argv[2]);
-	int capacity=0;
 	ifstream fin(argv[1], ios::in);
-	int LINE_LENGTH=100;
-	char line[LINE_LENGTH];
+	int MAX_LINE_LENGTH=100;
+	char line[MAX_LINE_LENGTH];
 	int type=1;
 	vector<string> queries;
 	char* pch;
-	while(fin.getline(line, LINE_LENGTH))
+	bool server_exit = false;
+	while(fin.getline(line, MAX_LINE_LENGTH))
 	{
 		string q=line;
+		if(q == "server_exit")
+		{
+			server_exit =true;
+			break;
+		}
 		queries.push_back(q);
 	}
 	fin.close();
 	//do batch processing
 	int n=queries.size();
-	vector<id_time> results;
 	msg_queue_client client;
 	msg_queue_receiver receiver;
 	double start_time=get_current_time();
-	int nxtQ=0;
-	while(nxtQ < n)
+	int query_num=0;
+	while(query_num < n)
 	{
-		while(capacity < N && nxtQ < n)
-		{
-			client.send_msg(type, queries[nxtQ].c_str());
-			nxtQ++;
-			capacity++;
-		}
-		while(receiver.recv_msg(type) == false);//busy waiting if no notification is received
-		do
-		{
-			//process current notification
-			char* notif=receiver.get_msg();
-			id_time entry;
-			pch=strtok(notif, " ");
-			entry.id=atoi(pch);
-			pch=strtok(NULL, " ");
-			entry.time=atof(pch);
-			pch=strtok(NULL, "\n");
-			entry.rate=atof(pch);
-			results.push_back(entry);
-			//------
-			capacity--;
-		}
-		while(receiver.recv_msg(type));
+		client.send_msg(type, queries[query_num].c_str());
+		query_num++;
 	}
-	//all queries sent, not all answers obtained
-	while(capacity > 0)
+	if(server_exit)
+		client.send_msg(type, "server_exit");
+
+	//all queries sent, obtain the answers
+	while(query_num > 0)
 	{
 		while(receiver.recv_msg(type) == false);//busy waiting if no notification is received
 		do
 		{
 			//process current notification
 			char* notif=receiver.get_msg();
-			id_time entry;
-			pch=strtok(notif, " ");
-			entry.id=atoi(pch);
-			pch=strtok(NULL, " ");
-			entry.time=atof(pch);
-			pch=strtok(NULL, "\n");
-			entry.rate=atof(pch);
-			results.push_back(entry);
+			pch=strtok(notif, "\n");
+			cout<<"[INFO] Query "<<pch<<" is done."<<endl;
 			//------
-			capacity--;
+			query_num--;
 		}
 		while(receiver.recv_msg(type));
 	}
 	cout<<"Total query processing time: "<<(get_current_time()-start_time)<<" seconds"<<endl;
-	//output results to a logfile
-	char* outfile="batch_out.txt";
-	if(argc > 3)
-	{
-		outfile=argv[3];
-	}
-	ofstream out(outfile);
-	sort(results.begin(), results.end());
-	for(int i=0; i<n; i++)
-	{
-		string q=queries[i];
-		id_time en=results[i];
-		out<<en.id<<": "<<q<<", response time "<<en.time<<" seconds, access rate = "<<en.rate<<endl;
-	}
-	out<<"Total query processing time: "<<(get_current_time()-start_time)<<" seconds"<<endl;
-	out.close();
 	//----
 	return 0;
 }

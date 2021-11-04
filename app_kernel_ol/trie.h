@@ -4,7 +4,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <vector>
-#include "util/rwlock.h"
+#include "../system/rwlock.h"
 #include <cassert>
 
 using namespace std;

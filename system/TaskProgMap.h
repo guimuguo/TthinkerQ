@@ -42,51 +42,6 @@ struct task_prog
 	}
 };
 
-//
-//obinstream & operator>>(obinstream & m, task_prog & t)
-//{
-//	m >> t.t_counter;
-//	m >> t.tid;
-//	m >> t.parent_tid;
-//	m >> t.query_id;
-//	m >> t.completed;
-//
-//    return m;
-//}
-//
-//ibinstream & operator<<(ibinstream & m, const task_prog & t)
-//{
-//	m << t.t_counter;
-//	m << t.tid;
-//	m << t.parent_tid;
-//	m << t.query_id;
-//	m << t.completed;
-//
-//    return m;
-//}
-//
-//ofbinstream & operator>>(ofbinstream & m, task_prog & t)
-//{
-//	m >> t.t_counter;
-//	m >> t.tid;
-//	m >> t.parent_tid;
-//	m >> t.query_id;
-//	m >> t.completed;
-//
-//    return m;
-//}
-//
-//ifbinstream & operator<<(ifbinstream & m, const task_prog & t)
-//{
-//	m << t.t_counter;
-//	m << t.tid;
-//	m << t.parent_tid;
-//	m << t.query_id;
-//	m << t.completed;
-//
-//    return m;
-//}
-
 
 //====== progress progress table ======
 
@@ -123,7 +78,7 @@ public:
     	bucket_map & kvmap = bucket.get_map();
     	bucket.lock();
 		auto it = kvmap.find(key);
-		assert(it != kvmap.end()); //todo remove assert when release the code???
+		assert(it != kvmap.end()); //todo remove assert when release the code
 		task_prog* prog = it->second;
 		bucket.unlock();
 		return prog;
@@ -135,7 +90,7 @@ public:
     	bucket & bucket = prog_map.get_bucket(key);
 		bucket.lock();
 		bool inserted = bucket.insert(key, value);
-		assert(inserted); //todo remove assert when release the code???
+		assert(inserted); //todo remove assert when release the code
 		bucket.unlock();
 	}
     
@@ -144,7 +99,7 @@ public:
     	bucket & bucket = prog_map.get_bucket(key);
 		bucket.lock();
 		bool erased = bucket.erase(key);
-		assert(erased); //todo remove assert when release the code???
+		assert(erased); //todo remove assert when release the code
     	bucket.unlock();
     }
 
