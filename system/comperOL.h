@@ -24,8 +24,9 @@ public:
     // Used in worker.h
     typedef typename TaskT::ContextType ContextT;
 
-    char outpath[200];
+    char outpath[1000];
 	char qfile[50];
+	char msg_temp[1000];
 
     int thread_id;
     FILE *gfpout;
@@ -156,7 +157,7 @@ public:
     // UDF2 wrapper
     void compute(TaskT *task)
     {
-    	gfpout = tc->fout_map[thread_id];// todo put output in tc
+    	gfpout = tc->fout_map[thread_id];
     	cur_tid = task->get_id();
     	cur_qid = task->get_qid();
         compute(task->context, tc->q);// compute(task->context, task);
@@ -170,7 +171,7 @@ public:
     }
 
     //UDF4: queryLoader ==============================
-	virtual void toQuery(string& line, QueryT& q) = 0; //this is what user specifies!!!!!!
+	virtual bool toQuery(string& line, QueryT& q) = 0; //this is what user specifies!!!!!!
 
 	virtual bool postprocess(QueryT& q) {//called at the end of a stage, returns false if the query is done.
 		return false;
@@ -209,7 +210,13 @@ public:
 		strcpy(outpath, out_path.c_str());
 		sprintf(qfile, "/query%d_", cur_qid);
 		strcat(outpath, qfile);
-		strcat(outpath, msg);
+		//loop char* msg and convert '/' and ' ' to '_'
+		strcpy(msg_temp, msg);
+		for (int i=0; *(msg_temp+i) != '\0'; i++)
+			if(*(msg_temp+i) == '/' || *(msg_temp+i) == ' ')
+				msg_temp[i]='_';
+
+		strcat(outpath, msg_temp);
 		recursive_mkdir(outpath);
 
 		//create file named comper_id
@@ -577,31 +584,46 @@ public:
 
 					cur_qid = spawn_qinfo.qid;
 					q_msg = spawn_qinfo.q;
-					//create output file
-					create_output_path(q_msg.c_str());
-					gfpout = tc->fout_map[thread_id];
-					toQuery(spawn_qinfo.q, tc->q);
 
-					if(!task_spawn(tc->q))
+					if(toQuery(spawn_qinfo.q, tc->q))
 					{
-						//close output file
-						for(int i=0; i<num_compers; i++)
-							fclose(tc->fout_map[i]);
+						//create output file
+						create_output_path(q_msg.c_str());
+						gfpout = tc->fout_map[thread_id];
 
+						if(!task_spawn(tc->q))
+						{
+							//close output file
+							for(int i=0; i<num_compers; i++)
+								fclose(tc->fout_map[i]);
+
+							delete tc;
+							activeQ_lock.wrlock();
+							activeQ_num--;
+							activeQ_lock.unlock();
+
+							cout<<"[INFO] Query "<<cur_qid<<" \""<<spawn_qinfo.q<<"\" spawns no task."<<endl;
+
+							sprintf(outpath, "%d", cur_qid);
+							notifier->send_msg(type, outpath);
+						}
+						else
+						{
+							activeQ_lock.wrlock();
+							activeQ_list.push_back(tc);
+							activeQ_lock.unlock();
+						}
+
+					} else {
 						delete tc;
 						activeQ_lock.wrlock();
 						activeQ_num--;
 						activeQ_lock.unlock();
 
-						cout<<"[INFO] Query "<<cur_qid<<" \""<<spawn_qinfo.q<<"\" spawns no task."<<endl;
+						cout<<"[INFO] Query "<<cur_qid<<" \""<<spawn_qinfo.q<<"\" is invalid."<<endl;
 
 						sprintf(outpath, "%d", cur_qid);
 						notifier->send_msg(type, outpath);
-					}
-					else{
-						activeQ_lock.wrlock();
-						activeQ_list.push_back(tc);
-						activeQ_lock.unlock();
 					}
 				}
 			} else activeQ_lock.unlock();

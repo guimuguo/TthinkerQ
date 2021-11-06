@@ -7,11 +7,11 @@ int main(int argc, char *argv[])
 {
 	msg_queue_client client;
 	long type=1;
-	char tmp[80];
+	char tmp[1000];
 	while(true)
 	{
 		cout<<"Input Query: ";
-		cin.get(tmp, 50);//readLine
+		cin.get(tmp, 1000);//readLine
 		cin.get();//skipe line-breaker
 		if(strcmp(tmp, "exit")==0) return 0;
 		client.send_msg(type, tmp);

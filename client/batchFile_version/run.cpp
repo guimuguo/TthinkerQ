@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 {
 	//load all queries
 	ifstream fin(argv[1], ios::in);
-	int MAX_LINE_LENGTH=100;
+	int MAX_LINE_LENGTH=1000;
 	char line[MAX_LINE_LENGTH];
 	int type=1;
 	vector<string> queries;

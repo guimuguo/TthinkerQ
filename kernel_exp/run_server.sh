@@ -6,5 +6,6 @@ do
 for c in $num_compers
 do
 ./run.sh ${d} ${c}
+#./run_val.sh ${d} ${c}
 done
 done

@@ -27,6 +27,19 @@ Graph global_g;
 VERTEX *global_pvertices;
 int num_of_cands;
 
+struct QCQuery
+{
+int min_size;
+double ratio;
+int min_deg;
+vector<int> kernel;
+int* index2id = NULL;
+~QCQuery(){
+	if(index2id != NULL) //index2id = NULL if task_spawn fail
+		delete[] index2id;
+}
+
+};
 
 struct ContextValue
 {
@@ -125,110 +138,21 @@ bool empty(ifstream &pFile)
 
 typedef Task<ContextValue> QCTask;
 
-//todo delete
-//bool setup_task(QCTask *task, int root_id)
-//{
-////	int root_id = global_pvertices[root_index].nvertex_no;
-////	set<int> id_set;
-////	id_set.insert(root_id);
-//	//temp_mark[v_id] is true if v is valid candidate
-//	vector<bool> temp_mark(global_g.mnum_of_vertices, false);
-//	temp_mark[root_id] = true;
-//	vector<int> id_array;
-//	id_array.push_back(root_id);
-//
-//	//set degree for pnew_vertices
-//	int* root_2hop = global_g.mpplvl2_nbs[root_id];
-//	for(int i=1; i<=root_2hop[0]; i++)
-//	{
-//		//only pull vertex which is post-located of v in v's 2hop nbs
-//		int nb_id = root_2hop[i];
-//		if(nb_id > root_id)
-//		{
-////			id_set.insert(nb_id);
-//			temp_mark[nb_id] = true;
-//			id_array.push_back(nb_id);
-//		}
-//	}
-//	//check min_size before task spwan
-//	if(id_array.size() < gnmin_size) return false;
-//
-//	task->context.pvertices = new VERTEX[id_array.size()];
-//	VERTEX *pnew_vertices = task->context.pvertices;
-//
-//	//calculate the degree for each v in new pvertex
-//
-//	pnew_vertices[0].nvertex_no = root_id;
-//	pnew_vertices[0].bis_cand = true;
-//	pnew_vertices[0].bto_be_extended = true;
-//	pnew_vertices[0].nclique_deg = 0;
-//	pnew_vertices[0].nlvl2_nbs = id_array.size()-1;
-//
-//	//prepare ncand_deg for spawned vertex
-//	int count = 0;
-//	int* root_1hop = global_g.mppadj_lists[root_id];
-//	for(int j=1; j<=root_1hop[0]; j++)
-//	{
-//		int hop1_id = root_1hop[j];
-////		if(id_set.find(hop1_id) != id_set.end())//use vector bool
-//		if(temp_mark[hop1_id])
-//			count++;
-//	}
-//	pnew_vertices[0].ncand_deg = count;
-//
-//	for(int i=1; i<id_array.size(); i++)
-//	{
-//		int v_id = id_array[i];
-//		pnew_vertices[i].nvertex_no = v_id;
-//		pnew_vertices[i].bis_cand = true;
-//		pnew_vertices[i].bto_be_extended = false; //only expand spawn vertex
-//		pnew_vertices[i].nclique_deg = 0;
-//		//prepare ncand_deg
-//		count = 0;
-//		int* nb_1hop = global_g.mppadj_lists[v_id];
-//		for(int j=1; j<=nb_1hop[0]; j++)
-//		{
-//			int hop1_id = nb_1hop[j];
-////			if(id_set.find(hop1_id) != id_set.end())
-//			if(temp_mark[hop1_id])
-//				count++;
-//		}
-//		pnew_vertices[i].ncand_deg = count;
-//
-//		//prepare nlvl2_nbs
-//		count = 0;
-//		//id_set -> vector bool
-//		int* nb_2hop = global_g.mpplvl2_nbs[v_id];
-//		for(int j=1; j<=nb_2hop[0]; j++)
-//		{
-//			int hop2_id = nb_2hop[j];
-////			if(id_set.find(hop2_id) != id_set.end())
-//			if(temp_mark[hop2_id])
-//				count++;
-//		}
-//		pnew_vertices[i].nlvl2_nbs = count;
-//	}
-//	temp_mark.clear();
-//
-//	task->context.nclique_size = 0;
-//	task->context.num_of_cands = id_array.size();
-//	task->context.num_of_tail_vertices = 0;
-//	return true;
-//}
-
-bool setup_task(QCTask *task, vector<int> &kernel)
+bool setup_task(QCTask *task, QCQuery &q)
 {
+	vector<int>& kernel = q.kernel;
+
 	int k_size = kernel.size();
 	int k_id;
-	//if any v in kernel is not valid after first round k-core prune, return false
+	//if any v in kernel is not valid after first round k-core prune or v's degree < min_deg, return false
 	//else translate vid to index in global pvertex
 	for (int i = 0; i < k_size; i++)
 	{
 		int k_id = kernel[i];
-		if(id2index_map.find(k_id) == id2index_map.end())
+		if(global_g.id2index_map.find(k_id) == global_g.id2index_map.end() && global_g.mppadj_lists[k_id][0] < q.min_deg)
 			return false;
 		else
-			kernel[i] = id2index_map[k_id];
+			kernel[i] = global_g.id2index_map[k_id];
 	}
 	//building task's graph by pulling kernel's 2hop neighbor
 	//only pull vertex which is the 2hop neighbor of all vertices
@@ -252,19 +176,21 @@ bool setup_task(QCTask *task, vector<int> &kernel)
 	id_array.push_back(k_id);
 
 	//add all mutual 2hop neighbors
+	//use min_deg to prune 2hop neighbors.
 	k_2hop = global_g.mpplvl2_nbs[k_id];
 	for (int i = 1; i <= k_2hop[0]; i++)
 	{
-		hop2_hit_count[k_2hop[i]]++;
-		if (hop2_hit_count[k_2hop[i]] == k_size)
-			id_array.push_back(k_2hop[i]);
+		int vid = k_2hop[i];
+		hop2_hit_count[vid]++;
+		if (hop2_hit_count[vid] == k_size && global_g.mppadj_lists[vid][0] >= q.min_deg)
+			id_array.push_back(vid);
 	}
 
 	//set the last one in kernel's hop2_hit_count to k_size, so hop2_hit_count[ext_S] == k_size
 	hop2_hit_count[k_id] = k_size;
 
 	//check min_size before task spwan
-	if (id_array.size() < gnmin_size)
+	if (id_array.size() < q.min_size)
 		return false;
 
 	// --- set field of VERTEX ---
@@ -359,7 +285,7 @@ bool setup_task(QCTask *task, vector<int> &kernel)
 	//Reduce-Mem: move to compute()
 //	task->context.split_g.mnum_of_vertices = global_g.mnum_of_vertices;
 //	task->context.split_g.mblvl2_flag = global_g.mblvl2_flag;
-//	global_g.ForceGenCondGraph1(pnew_vertices, k_size - 1, id_array.size() - k_size + 1, 0, task->context.split_g);
+//	global_g.CondQueryGraph(pnew_vertices, k_size - 1, id_array.size() - k_size + 1, 0, task->context.split_g);
 
 	task->context.nclique_size = k_size - 1;
 	task->context.num_of_cands = id_array.size() - k_size + 1;
@@ -368,7 +294,7 @@ bool setup_task(QCTask *task, vector<int> &kernel)
 }
 
 
-class QCComper : public Comper<QCTask, vector<int> >
+class QCComper : public Comper<QCTask, QCQuery>
 {
 public:
 
@@ -410,7 +336,7 @@ public:
 					}
 				}
 
-				if(gdmin_deg_ratio==1)
+				if(gograph.gdmin_deg_ratio==1)
 					num_of_new_cands = gograph.AddOneVertex(pvertices, nclique_size, num_of_cands, num_of_tail_vertices, i, true, pnew_vertices, num_of_new_tail_vertices, &one_clq_stat);
 				else
 					num_of_new_cands = gograph.AddOneVertex(pvertices, nclique_size, num_of_cands, num_of_tail_vertices, i, false, pnew_vertices, num_of_new_tail_vertices, &one_clq_stat);
@@ -472,7 +398,7 @@ public:
 
 				if(nsuperclique_size==0 && !bis_subsumed)
 				{
-					if(nnew_clique_size>=gnmin_size)
+					if(nnew_clique_size>=gograph.gnmin_size)
 					{
 						nmin_deg = gograph.GetMinDeg(nnew_clique_size);
 						for(j=0;j<nnew_clique_size;j++)
@@ -482,7 +408,7 @@ public:
 						}
 						if(j>=nnew_clique_size)
 						{
-							if(gdmin_deg_ratio<1)
+							if(gograph.gdmin_deg_ratio<1)
 								num_of_new_tail_vertices = 0;
 							else if(num_of_new_tail_vertices==0)
 								num_of_new_tail_vertices = gograph.GenTailVertices(pvertices, nclique_size, num_of_cands, num_of_tail_vertices, i, pnew_vertices, nnew_clique_size);
@@ -490,7 +416,7 @@ public:
 							if(nmax_clique_size<nnew_clique_size)
 								nmax_clique_size = nnew_clique_size;
 						}
-						else if(nnew_clique_size>nclique_size+1 && nclique_size+1>=gnmin_size)
+						else if(nnew_clique_size>nclique_size+1 && nclique_size+1>=gograph.gnmin_size)
 						{
 							nmin_deg = gograph.GetMinDeg(nclique_size+1);
 							for(j=0;j<=nclique_size;j++)
@@ -538,14 +464,25 @@ public:
 //		return vid;
 //	}
 
-	virtual void toQuery(string& line, vector<int> &q){
+	virtual bool toQuery(string& line, QCQuery &q){
 		stringstream iss(line);
-		int number;
-		while(iss >> number)
-		  q.push_back(number);
+		iss >> q.min_size;
+		iss >> q.ratio;
+		if(q.min_size < global_g.gnmin_size || q.ratio < global_g.gdmin_deg_ratio)
+			return false;
+
+		q.min_deg = ceil(q.ratio * (q.min_size - 1));
+		int vid;
+		while(iss >> vid)
+		  q.kernel.push_back(vid);
+
+		if(q.kernel.empty())
+			return false;
+		else
+			return true;
 	}
 
-	virtual bool task_spawn(vector<int> &q)
+	virtual bool task_spawn(QCQuery &q)
 	{
 		QCTask *task = new QCTask();
 
@@ -561,20 +498,23 @@ public:
 		return false;
 	}
 
-    virtual void compute(ContextT &context, vector<int> &q)
+    virtual void compute(ContextT &context, QCQuery &q)
     {
     	Graph& split_g = context.split_g;
     	if(context.round == SPAWNED_TASK)
     	{
     		//Reduce-Mem: if it is spawned task, setup condensed graph for it
-			split_g.mnum_of_vertices = global_g.mnum_of_vertices;
 			split_g.mblvl2_flag = global_g.mblvl2_flag;
-//			global_g.ForceGenCondGraph1(context.pvertices, 0, context.num_of_cands, 0, split_g);
-			global_g.ForceGenCondGraph1(context.pvertices, context.nclique_size, context.num_of_cands, 0, split_g);
-
+			//shrink the task's graph (1&2-hop adjcent list)
+			global_g.CondQueryGraph(context.pvertices, context.nclique_size, context.num_of_cands, 0, split_g, q.index2id);
     	}
+    	split_g.index2id = q.index2id;
+		split_g.gdmin_deg_ratio = q.ratio;
+		split_g.gnmin_size = q.min_size;
+		split_g.gnmin_deg = q.min_deg;
 
     	split_g.SetupGraph(context.nclique_size, context.num_of_cands, context.num_of_tail_vertices);
+
 		ftime(&split_g.gtime_start);
 		Expand(context.pvertices, context.nclique_size, context.num_of_cands, context.num_of_tail_vertices, gfpout, split_g);
 
@@ -602,8 +542,8 @@ public:
 
     ~QCWorker()
     {
-    	delete []index2id;
     	global_g.DestroySplitGraph();
+    	delete []global_g.index2id;
 		delete []global_g.gpvertex_order_map;
 		delete []global_g.gptemp_array;
 		delete []global_pvertices;

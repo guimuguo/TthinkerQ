@@ -60,19 +60,25 @@ int main(int argc, char **argv)
     cout << "Start testing memory and time..." << endl;
 
     
-    if (argc < 6)
+    if (argc < 5)
     {
         cout << "arg1 = input path, arg2 = number of threads"
-             << ", arg3 = degree ratio, arg4 = min_size, arg5 = time delay threshold" << endl;
+             << ", arg3 = time delay threshold, arg4 = min_size, arg5 = degree ratio" << endl;
         return -1;
     }
     char *input_path = argv[1];
     num_compers = atoi(argv[2]); //number of compers
-    gdmin_deg_ratio = atof(argv[3]);
-    gnmin_size = atoi(argv[4]);
+    TIME_THRESHOLD = atof(argv[3]); // tau_time
+
+    global_g.gnmin_size = atoi(argv[4]); //base min_size
     gnmax_size = INT_MAX;
-    gnmin_deg = ceil(gdmin_deg_ratio * (gnmin_size - 1));
-    TIME_THRESHOLD = atof(argv[5]); // tau_time
+    if (argc > 5)
+    	global_g.gdmin_deg_ratio = atof(argv[5]);
+    else
+    	global_g.gdmin_deg_ratio = 0.5;
+
+    global_g.gnmin_deg = ceil(global_g.gdmin_deg_ratio * (global_g.gnmin_size - 1));
+
     if (argc > 6)
         BIGTASK_THRESHOLD = atof(argv[6]); // tau_split
     if (argc > 7)
@@ -90,19 +96,19 @@ int main(int argc, char **argv)
     if (argc > 13)
         RT_THRESHOLD_FOR_REFILL = atoi(argv[14]);
 
-    cout << "input_path:" << argv[1] << endl;
-    cout << "num_compers:" << num_compers << endl;
-    cout << "gdmin_deg_ratio:" << gdmin_deg_ratio << endl;
-    cout << "gnmin_size:" << gnmin_size << endl;
-    cout << "TIME_THRESHOLD:" << TIME_THRESHOLD << endl;
-    cout << "BIGTASK_THRESHOLD:" << BIGTASK_THRESHOLD << endl;
-    cout << "tasks_per_fetch_g:" << tasks_per_fetch_g << endl;
-    cout << "Qbig_capacity:" << Qbig_capacity << endl;
-    cout << "Qreg_capacity:" << Qreg_capacity << endl;
-    cout << "BT_TASKS_PER_FILE:" << BT_TASKS_PER_FILE << endl;
-    cout << "RT_TASKS_PER_FILE:" << RT_TASKS_PER_FILE << endl;
-    cout << "BT_THRESHOLD_FOR_REFILL:" << BT_THRESHOLD_FOR_REFILL << endl;
-    cout << "RT_THRESHOLD_FOR_REFILL:" << RT_THRESHOLD_FOR_REFILL << endl;
+    cout << "input_path: " << argv[1] << endl;
+    cout << "num_compers: " << num_compers << endl;
+    cout << "base_min_size: " << global_g.gnmin_size << endl;
+    cout << "base_ratio: " << global_g.gdmin_deg_ratio << endl;
+    cout << "TIME_THRESHOLD: " << TIME_THRESHOLD << endl;
+    cout << "BIGTASK_THRESHOLD: " << BIGTASK_THRESHOLD << endl;
+    cout << "tasks_per_fetch_g: " << tasks_per_fetch_g << endl;
+    cout << "Qbig_capacity: " << Qbig_capacity << endl;
+    cout << "Qreg_capacity: " << Qreg_capacity << endl;
+    cout << "BT_TASKS_PER_FILE: " << BT_TASKS_PER_FILE << endl;
+    cout << "RT_TASKS_PER_FILE: " << RT_TASKS_PER_FILE << endl;
+    cout << "BT_THRESHOLD_FOR_REFILL: " << BT_THRESHOLD_FOR_REFILL << endl;
+    cout << "RT_THRESHOLD_FOR_REFILL: " << RT_THRESHOLD_FOR_REFILL << endl;
     
 
     QCWorker worker(num_compers);

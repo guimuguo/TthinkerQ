@@ -1,6 +1,6 @@
 home_path="/home/guimuguo/TthinkerQ"
 monitor_path=$home_path/monitor
-app_qc_path=$home_path/app_qc_ol
+app_qc_path=$home_path/app_kernel_ol
 maximal_check_path=$home_path/maximal_check
 data_path="/home/guimuguo/quick_data"
 
@@ -36,7 +36,7 @@ tau_time="1"
 base=${f}/"${compers}"
 log="${base}_log"
 
-(date;time $app_qc_path/run $data_path/${f} ${compers} ${gamma} ${t_size} ${tau_time} ${tau_split};date) 2>&1 | tee ${log};
+(date;time valgrind --error-limit=no $app_qc_path/run $data_path/${f} ${compers} ${tau_time} ${t_size} ${gamma} ${tau_split};date) 2>&1 | tee ${log};
 
 #sleep 1
 #$monitor_path/mem_sum.sh >> ${log};

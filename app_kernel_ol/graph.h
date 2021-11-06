@@ -16,15 +16,7 @@ float disk_time;
 using namespace std::chrono;
 
 #pragma warning (disable:4996)
-
-map<int, int> id2index_map;
-
-double gdmin_deg_ratio;
-int gnmin_size;
 int gnmax_size;
-int gnmin_deg;
-//Guimu-condense
-int *index2id;
 
 struct VERTEX // variables start with 'b' is boolean, 'n' is integer
 {
@@ -117,6 +109,14 @@ class Graph
 {
 public:
 
+	map<int, int> id2index_map;
+
+	double gdmin_deg_ratio;
+	int gnmin_size;
+	int gnmin_deg;
+	//Guimu-condense
+	int *index2id;
+
 	// prefix 'm' means it's member of Graph, 'p' is a pointer, 'pp' is a pointer (array) of pointers
 	//**mppadj_lists, *mpadj_list_buf, **mpplvl2_nbs are only be used when there is no conditional graphs.
 
@@ -175,7 +175,7 @@ public:
 	void CrtcVtxPrune(VERTEX *pvertices, int &nclique_size, int &num_of_cands, int &num_of_tail_vertices, VERTEX *pclique, CLQ_STAT *pclq_stat);
 	bool GenCondGraph(VERTEX* pvertices, int nclique_size, int num_of_cands, int num_of_tail_vertices);
 //	bool ForceGenCondGraph(VERTEX* pvertices, int nclique_size, int num_of_cands, int num_of_tail_vertices, Graph& split_g);
-	void ForceGenCondGraph1(VERTEX* pvertices, int nclique_size, int num_of_cands, int num_of_tail_vertices, Graph& split_g);
+	void CondQueryGraph(VERTEX* pvertices, int nclique_size, int num_of_cands, int num_of_tail_vertices, Graph& split_g, int* &q_id2index);
 	void ForceGenCondGraph(VERTEX* pvertices, int nclique_size, int num_of_cands, int num_of_tail_vertices, Graph& split_g);
 	void DelCondGraph();
 	int ReduceCands(VERTEX *pvertices, int nclique_size, int num_of_cands, bool &bis_subsumed);
@@ -2243,26 +2243,31 @@ bool Graph::GenCondGraph(VERTEX* pvertices, int nclique_size, int num_of_cands, 
 	return bnew_condgraph;
 }
 
-//new local variable for openMP
-void Graph::ForceGenCondGraph1(VERTEX* pvertices, int nclique_size, int num_of_cands, int num_of_tail_vertices, Graph& split_g)
+void Graph::CondQueryGraph(VERTEX* pvertices, int nclique_size, int num_of_cands, int num_of_tail_vertices, Graph& split_g, int* &q_id2index)
 {
 	int * gpvertex_order_map  = new int[mnum_of_vertices]; // map[vertex_no] = position in pvertices[.], this is needed as vertices change their positions in pvertices[.]
 	memset(gpvertex_order_map, -1, sizeof(int)*mnum_of_vertices);
-	int * gptemp_array = new int[mnum_of_vertices];
 
-	int num_of_vertices, num_of_new_vertices, i, j, **pplvl2_nbs, **ppnew_lvl2_nbs, ncand_nbs;
+	int num_of_new_vertices, i, j, **pplvl2_nbs, **ppnew_lvl2_nbs, ncand_nbs;
 	int nlist_len, nvertex_no, norder, **ppnew_adjlists, **ppadj_lists;
 
 	num_of_new_vertices = nclique_size+num_of_cands+num_of_tail_vertices;
+	int * gptemp_array = new int[num_of_new_vertices];
+
+	map<int, int> gid2index_map; //global graph's id to index
+	q_id2index = new int[num_of_new_vertices];
+	split_g.mnum_of_vertices = num_of_new_vertices;
+
+	for(i=0;i<num_of_new_vertices;i++)
+	{
+		nvertex_no = pvertices[i].nvertex_no;
+		q_id2index[i] = index2id[nvertex_no]; //need to convert the global's id to original id
+		gid2index_map[nvertex_no] = i;
+	}
 
 	//record current order
 	for(i=0;i<num_of_new_vertices;i++)
 		gpvertex_order_map[pvertices[i].nvertex_no] = i;
-
-	if(mnum_of_cond_graphs==0)
-		num_of_vertices = mnum_of_vertices;
-	else//use last mpcond_graph's num_of_vertices
-		num_of_vertices = mpcond_graphs[mnum_of_cond_graphs-1].num_of_vertices;
 
 	//===================================================================
 	//*** to set new mpcond_graphs's pplvl2_nbs
@@ -2274,11 +2279,10 @@ void Graph::ForceGenCondGraph1(VERTEX* pvertices, int nclique_size, int num_of_c
 	else
 	{
 		//set a new lvl2_nbs for new cond_graph
-		//ppnew_lvl2_nbs and ppnew_adjlists are both int ** with size == mnum_of_vertices
-		ppnew_lvl2_nbs = new int*[mnum_of_vertices];
-		memset(ppnew_lvl2_nbs, 0, sizeof(int*)*mnum_of_vertices);
+		//ppnew_lvl2_nbs and ppnew_adjlists are both int ** with size == num_of_new_vertices
+		ppnew_lvl2_nbs = new int*[num_of_new_vertices];
+		memset(ppnew_lvl2_nbs, 0, sizeof(int*)*num_of_new_vertices);
 		split_g.mpplvl2_nbs = ppnew_lvl2_nbs;
-
 
 		//get previous lvl2_nbs and prune it
 		if(mnum_of_cond_graphs==0)
@@ -2290,15 +2294,16 @@ void Graph::ForceGenCondGraph1(VERTEX* pvertices, int nclique_size, int num_of_c
 			nlist_len = 0;
 			ncand_nbs = 0;
 			nvertex_no = pvertices[i].nvertex_no;
-			if(pplvl2_nbs[nvertex_no]!=NULL)
+			int* adj_2hop = pplvl2_nbs[nvertex_no];
+			if(adj_2hop!=NULL)
 			{
-				for(j=1;j<=pplvl2_nbs[nvertex_no][0];j++)//loop v's 2hop nb
+				for(j=1;j<=adj_2hop[0];j++)//loop v's 2hop nb
 				{
-					norder = gpvertex_order_map[pplvl2_nbs[nvertex_no][j]];
+					norder = gpvertex_order_map[adj_2hop[j]];
 					//if this 2hop_nb is not in new_vertices(clique+cand+tail), it will be -1 in order_map
 					if(norder>=0)
 					{
-						gptemp_array[nlist_len++] = pplvl2_nbs[nvertex_no][j];
+						gptemp_array[nlist_len++] = gid2index_map[adj_2hop[j]];
 						if(pvertices[norder].bis_cand)
 							ncand_nbs++;
 					}
@@ -2307,9 +2312,9 @@ void Graph::ForceGenCondGraph1(VERTEX* pvertices, int nclique_size, int num_of_c
 			//set new cond_graph's ppnew_lvl2_nbs
 			if(nlist_len>0)
 			{
-				ppnew_lvl2_nbs[nvertex_no] = new int[nlist_len+1];
-				ppnew_lvl2_nbs[nvertex_no][0] = nlist_len;
-				memcpy(&ppnew_lvl2_nbs[nvertex_no][1], gptemp_array, sizeof(int)*nlist_len);
+				ppnew_lvl2_nbs[i] = new int[nlist_len+1];
+				ppnew_lvl2_nbs[i][0] = nlist_len;
+				memcpy(&ppnew_lvl2_nbs[i][1], gptemp_array, sizeof(int)*nlist_len);
 			}
 			//always update pvertices' 2hop
 			pvertices[i].nlvl2_nbs = ncand_nbs;
@@ -2318,8 +2323,8 @@ void Graph::ForceGenCondGraph1(VERTEX* pvertices, int nclique_size, int num_of_c
 	//===================================================================
 	//*** to set new mpcond_graphs's ppadj_lists
 	//--------------------------------------------------------------------
-	ppnew_adjlists = new int*[mnum_of_vertices];
-	memset(ppnew_adjlists, 0, sizeof(int*)*mnum_of_vertices);
+	ppnew_adjlists = new int*[num_of_new_vertices];
+	memset(ppnew_adjlists, 0, sizeof(int*)*num_of_new_vertices);
 
 	split_g.mppadj_lists = ppnew_adjlists;
 
@@ -2333,14 +2338,15 @@ void Graph::ForceGenCondGraph1(VERTEX* pvertices, int nclique_size, int num_of_c
 		nlist_len = 0;
 		ncand_nbs = 0;
 		nvertex_no = pvertices[i].nvertex_no;
-		if(ppadj_lists[nvertex_no]!=NULL)
+		int* adj_1hop = ppadj_lists[nvertex_no];
+		if(adj_1hop!=NULL)
 		{
-			for(j=1;j<=ppadj_lists[nvertex_no][0];j++)
+			for(j=1;j<=adj_1hop[0];j++)
 			{
-				norder = gpvertex_order_map[ppadj_lists[nvertex_no][j]];
+				norder = gpvertex_order_map[adj_1hop[j]];
 				if(norder>=0)
 				{
-					gptemp_array[nlist_len++] = ppadj_lists[nvertex_no][j];
+					gptemp_array[nlist_len++] = gid2index_map[adj_1hop[j]];
 					if(pvertices[norder].bis_cand)
 						ncand_nbs++;
 				}
@@ -2350,16 +2356,20 @@ void Graph::ForceGenCondGraph1(VERTEX* pvertices, int nclique_size, int num_of_c
 			printf("Error: inconsistent candidate degree 3\n");
 		if(nlist_len>0)
 		{
-			ppnew_adjlists[nvertex_no] = new int[nlist_len+1];
-			ppnew_adjlists[nvertex_no][0] = nlist_len;
-			memcpy(&ppnew_adjlists[nvertex_no][1], gptemp_array, sizeof(int)*nlist_len);
+			ppnew_adjlists[i] = new int[nlist_len+1];
+			ppnew_adjlists[i][0] = nlist_len;
+			memcpy(&ppnew_adjlists[i][1], gptemp_array, sizeof(int)*nlist_len);
 		}
 	}
 	//-------------------------------------------------------------------------------
 
-	//reset gpvertex_order_map all to -1
+	//reset gpvertex_order_map all to -1 //to be delete
 	for(i=0;i<num_of_new_vertices;i++)
 		gpvertex_order_map[pvertices[i].nvertex_no] = -1;
+
+	//translate pvertex
+	for(i=0;i<num_of_new_vertices;i++)
+		pvertices[i].nvertex_no = i;
 
 	delete []gpvertex_order_map;
 	delete []gptemp_array;
