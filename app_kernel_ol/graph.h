@@ -2353,7 +2353,7 @@ void Graph::CondQueryGraph(VERTEX* pvertices, int nclique_size, int num_of_cands
 			}
 		}
 		if(pvertices[i].ncand_deg!=ncand_nbs)
-			printf("Error: inconsistent candidate degree 3\n");
+			printf("Error: inconsistent candidate degree 3--2\n");
 		if(nlist_len>0)
 		{
 			ppnew_adjlists[i] = new int[nlist_len+1];
@@ -2475,7 +2475,7 @@ void Graph::ForceGenCondGraph(VERTEX* pvertices, int nclique_size, int num_of_ca
 			}
 		}
 		if(pvertices[i].ncand_deg!=ncand_nbs)
-			printf("Error: inconsistent candidate degree 3\n");
+			printf("Error: inconsistent candidate degree 3--1\n");
 		if(nlist_len>0)
 		{
 			ppnew_adjlists[nvertex_no] = new int[nlist_len+1];

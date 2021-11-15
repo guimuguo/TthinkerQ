@@ -36,7 +36,7 @@ struct msg_queue_server
 
 	msg_queue_server()
 	{
-		service_num = 'g';
+		service_num = 'q';
 		key = ftok(MSG_DIR, service_num);
 		if((qid = msgget(key, IPC_CREAT|IPC_EXCL|0660)) == -1) {
 			perror("Error in msg_queue_server's constructor");
@@ -101,7 +101,7 @@ struct msg_queue_client
 
 	msg_queue_client()
 	{
-		service_num = 'g';
+		service_num = 'q';
 		key = ftok(MSG_DIR, service_num); //generate IPC key using pathname and proj_id
 		if((qid = msgget(key, 0)) == -1) {
 			perror("Error in msg_queue_client's constructor");
@@ -145,7 +145,7 @@ struct msg_queue_notifier
 
 	msg_queue_notifier()
 	{
-		service_num = 'm';
+		service_num = 'p';
 		key = ftok(MSG_DIR, service_num);
 		if((qid = msgget(key, IPC_CREAT|IPC_EXCL|0660)) == -1) {
 			perror("Error in msg_queue_notifier's constructor");
@@ -198,7 +198,7 @@ struct msg_queue_receiver
 
 	msg_queue_receiver()
 	{
-		service_num = 'm';
+		service_num = 'p';
 		key = ftok(MSG_DIR, service_num);
 		if((qid = msgget(key, 0)) == -1) {
 			perror("Error in msg_queue_receiver's constructor");

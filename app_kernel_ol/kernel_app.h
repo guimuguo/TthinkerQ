@@ -182,8 +182,13 @@ bool setup_task(QCTask *task, QCQuery &q)
 	{
 		int vid = k_2hop[i];
 		hop2_hit_count[vid]++;
-		if (hop2_hit_count[vid] == k_size && global_g.mppadj_lists[vid][0] >= q.min_deg)
-			id_array.push_back(vid);
+		if (hop2_hit_count[vid] == k_size)
+		{
+			if(global_g.mppadj_lists[vid][0] >= q.min_deg)
+				id_array.push_back(vid);
+			else
+				hop2_hit_count[vid] = -2; //mark invalid vertex to -2
+		}
 	}
 
 	//set the last one in kernel's hop2_hit_count to k_size, so hop2_hit_count[ext_S] == k_size
