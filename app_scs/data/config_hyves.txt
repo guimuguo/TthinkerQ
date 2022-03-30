@@ -1,0 +1,16 @@
+Graph_file /home/saugat/scs_new/TthinkerQ/app_scs/data/hyves.txt
+EXE_heu2 1
+EXE_heu3 1
+EXE_heu4 1
+EXE_ub1 1
+EXE_ub2 1
+EXE_ub3 1
+EXE_ub3_optimization 0
+EXE_core_maintenance 1
+EXE_new2VI 1
+EXE_del_from_VR 1
+EXE_dom_ustar 1
+domS_Threshold 2
+MaxTime 7200
+srch_ord 1
+preprocess_graph 1
