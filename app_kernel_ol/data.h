@@ -21,7 +21,7 @@ public:
 	int micapacity;
 
 	
-	Data(char *filename);
+	Data(const char *filename);
 	~Data();
 
 	int isOpen();
@@ -33,7 +33,7 @@ private:
 };
 
 
-Data::Data(char *filename)
+Data::Data(const char *filename)
 {
 	in = fopen(filename,"rt");
 	if(in==NULL)

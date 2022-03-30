@@ -24,6 +24,8 @@ public:
     // Used in worker.h
     typedef typename TaskT::ContextType ContextT;
 
+    bool add_root_task_tag = false; // flag will set to true when task_spawn or postprocess
+
     char outpath[1000];
 	char qfile[50];
 	char msg_temp[1000];
@@ -102,6 +104,7 @@ public:
 
 					flag = false;
 
+					add_root_task_tag = true;
 					if(!postprocess(tc->q)) {
 						//remove the query from activeQ_list
 						activeQ_lock.wrlock();
@@ -126,6 +129,7 @@ public:
 						assert(it != activeQ_list.end());
 						activeQ_lock.unlock();
 					}
+					add_root_task_tag = false;
 
 				} else {
 					prog = global_prog_map->get(parent_id);
@@ -165,7 +169,7 @@ public:
     }
 
     // UDF3
-    virtual bool is_bigTask(TaskT *task)
+    virtual bool is_bigTask(ContextT & context)
     {
         return false;
     }
@@ -352,44 +356,63 @@ public:
         }
     }
 
-    //for task spawn
-    bool add_root_task(TaskT *task)
-    {
-    	task->prog = new task_prog(get_next_taskID(), -1, cur_qid);
-    	global_prog_map->insert(task->prog->tid, task->prog);
+//    //for task spawn
+//    bool add_root_task(TaskT *task)
+//    {
+//    	task->prog = new task_prog(get_next_taskID(), -1, cur_qid);
+//    	global_prog_map->insert(task->prog->tid, task->prog);
+//
+//        if (is_bigTask(task))
+//        {
+//            add_bigTask(task);
+//            return true;
+//        }
+//
+//        add_regTask(task);
+//        return false;
+//    }
+//
+//    //for task split
+//    bool add_task(TaskT *task)
+//    {
+//    	task->prog = new task_prog(get_next_taskID(), cur_tid, cur_qid);
+//    	global_prog_map->insert(task->prog->tid, task->prog);
+//    	task_prog* parent_prog = global_prog_map->get(cur_tid);
+//    	parent_prog->t_counter++; //no need lock since it happens before "completed -> ture"
+//
+//        if (is_bigTask(task))
+//        {
+//            add_bigTask(task);
+//            return true;
+//        }
+//
+//        add_regTask(task);
+//        return false;
+//    }
 
-        if (is_bigTask(task))
-        {
-            add_bigTask(task);
-            return true;
-        }
 
-        add_regTask(task);
-        return false;
-    }
+	void add_task(TaskT *task)
+	{
+		if (add_root_task_tag){
+			//set parent prog id = -1 for root task.
+			task->prog = new task_prog(get_next_taskID(), -1, cur_qid);
+		} else {
+			task->prog = new task_prog(get_next_taskID(), cur_tid, cur_qid);
+			task_prog* parent_prog = global_prog_map->get(cur_tid);
+			parent_prog->t_counter++; //no need lock since it happens before "completed -> ture"
+		}
+		global_prog_map->insert(task->prog->tid, task->prog);
 
-    //for task split
-    bool add_task(TaskT *task)
-    {
-    	task->prog = new task_prog(get_next_taskID(), cur_tid, cur_qid);
-    	global_prog_map->insert(task->prog->tid, task->prog);
-    	task_prog* parent_prog = global_prog_map->get(cur_tid);
-    	parent_prog->t_counter++; //no need lock since it happens before "completed -> ture"
-
-        if (is_bigTask(task))
-        {
-            add_bigTask(task);
-            return true;
-        }
-
-        add_regTask(task);
-        return false;
-    }
+		if (is_bigTask(task->context))
+			add_bigTask(task);
+		else
+			add_regTask(task);
+	}
 
     //for task refill; progress object is still in the global table
     bool add_refilled_task(TaskT *task)
 	{
-		if (is_bigTask(task))
+		if (is_bigTask(task->context))
 		{
 			add_bigTask(task);
 			return true;
@@ -591,6 +614,7 @@ public:
 						create_output_path(q_msg.c_str());
 						gfpout = tc->fout_map[thread_id];
 
+						add_root_task_tag = true;
 						if(!task_spawn(tc->q))
 						{
 							//close output file
@@ -613,6 +637,7 @@ public:
 							activeQ_list.push_back(tc);
 							activeQ_lock.unlock();
 						}
+						add_root_task_tag = false;
 
 					} else {
 						delete tc;

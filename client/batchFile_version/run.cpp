@@ -6,6 +6,7 @@
 #include <vector>
 #include <algorithm>
 #include "time.h"
+#include <unistd.h>
 using namespace std;
 
 //usage:
@@ -42,9 +43,12 @@ int main(int argc, char *argv[])
 	int query_num=0;
 	while(query_num < n)
 	{
-		client.send_msg(type, queries[query_num].c_str());
-		query_num++;
+		if(client.send_msg(type, queries[query_num].c_str()))
+			query_num++;
+		else
+			usleep(1);
 	}
+
 	if(server_exit)
 		client.send_msg(type, "server_exit");
 

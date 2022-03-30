@@ -86,7 +86,7 @@ public:
 //        delete Qbig;
 
         delete global_prog_map;
-        delete global_activeQ_list;
+        delete activeQ_list;
         delete server;
         delete notifier;
     }

@@ -6,6 +6,7 @@
 #ifndef TRIE_APP_H_
 #define TRIE_APP_H_
 
+#define INITIAL_TASK -1
 #define SPAWNED_TASK 1
 #define DECOMPOSED_TASK 2
 
@@ -54,11 +55,11 @@ struct ContextValue
 
 	//Reduce-Mem: set round to distinguish spawned task and splitted task
 	ContextValue(){
-		round = -1;
+		round = INITIAL_TASK;
 	}
 
 	~ContextValue(){
-		if(round != -1){
+		if(round != INITIAL_TASK){
 			split_g.DestroySplitGraph();
 		}
 		if(pvertices != NULL)
@@ -70,7 +71,7 @@ struct ContextValue
 //obinstream & operator>>(obinstream & m, ContextValue & c)
 //{
 //	m >> c.round;
-//	if(c.round == 2)
+//	if(c.round == DECOMPOSED_TASK)
 //		m >> c.split_g;
 //	m >> c.nclique_size;
 //	m >> c.num_of_cands;
@@ -86,7 +87,7 @@ struct ContextValue
 //ibinstream & operator<<(ibinstream & m, const ContextValue & c)
 //{
 //	m << c.round;
-//	if(c.round == 2)
+//	if(c.round == DECOMPOSED_TASK)
 //		m << c.split_g;
 //	m << c.nclique_size;
 //	m << c.num_of_cands;
@@ -101,7 +102,7 @@ struct ContextValue
 ofbinstream & operator>>(ofbinstream & m, ContextValue & c)
 {
 	m >> c.round;
-	if(c.round == 2)
+	if(c.round == DECOMPOSED_TASK)
 		m >> c.split_g;
 	m >> c.nclique_size;
 	m >> c.num_of_cands;
@@ -117,7 +118,7 @@ ofbinstream & operator>>(ofbinstream & m, ContextValue & c)
 ifbinstream & operator<<(ifbinstream & m, const ContextValue & c)
 {
 	m << c.round;
-	if(c.round == 2)
+	if(c.round == DECOMPOSED_TASK)
 		m << c.split_g;
 	m << c.nclique_size;
 	m << c.num_of_cands;
@@ -383,7 +384,7 @@ public:
 							t->context.nclique_size = nnew_clique_size;
 							t->context.num_of_cands = num_of_new_cands;
 							t->context.num_of_tail_vertices = num_of_new_tail_vertices;
-							//Reduce-Mem: set round = 2 for splitted tasks
+							//Reduce-Mem: set round = DECOMPOSED_TASK for splitted tasks
 							t->context.round = DECOMPOSED_TASK;
 
 							add_task(t);
@@ -493,9 +494,9 @@ public:
 
 		if (setup_task(task, q))
 		{
-			//Reduce-Mem: set round = 1 for spawned task
+			//Reduce-Mem: set round = SPAWNED_TASK for spawned task
 			task->context.round = SPAWNED_TASK;
-			add_root_task(task);
+			add_task(task);
 			return true;
 		}
 
@@ -526,9 +527,9 @@ public:
 		split_g.ClearGraph(); //delete graph's variable
     }
 
-	virtual bool is_bigTask(QCTask *task)
+	virtual bool is_bigTask(ContextT &context)
 	{
-		if (task->context.num_of_cands > BIGTASK_THRESHOLD)
+		if (context.num_of_cands > BIGTASK_THRESHOLD)
 		{
 			return true;
 		}
@@ -555,7 +556,7 @@ public:
     }
 
 
-    void load_data(char* file_path)
+    void load_data(const char* file_path)
     {
         global_pvertices = global_g.Cliques(file_path, num_of_cands);
     }

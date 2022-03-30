@@ -156,7 +156,7 @@ public:
 	void ClearGraph();
 	void CompressGraph(VERTEX *pvertices, int num_of_cands);
 	void GenLevel2NBs();
-	int LoadGraph(char* szgraph_file);
+	int LoadGraph(const char* szgraph_file);
 	void DestroyGraph();
 	void DestroySplitGraph();
 	void OutputLvl2Graph(char* szoutput_filename);
@@ -165,7 +165,7 @@ public:
 //	int Cliques(map<VertexID, kc_value> & gmap, FILE *gfpout);
 //	int Cliques(char *szgraph_filename, char* szoutput_filename);
 //	int Cliques(char *szgraph_filename, VERTEX *global_pvertices);
-	VERTEX *Cliques(char *szgraph_filename, int & num_of_cands);
+	VERTEX *Cliques(const char *szgraph_filename, int & num_of_cands);
 	int Expand(VERTEX *pvertices, int nclique_size, int num_of_cands, int num_of_tail_vertices, FILE *gfpout);
 	int ExpandOnce(VERTEX *pvertices, int nclique_size, int num_of_cands, int num_of_tail_vertices, FILE *gfpout);
 
@@ -694,7 +694,7 @@ void Graph::CompressGraph(VERTEX *pvertices, int num_of_cands)
 }
 
 
-VERTEX * Graph::Cliques(char *szgraph_filename, int & num_of_cands)
+VERTEX * Graph::Cliques(const char *szgraph_filename, int & num_of_cands)
 {
 	int i, j, num_of_vertices, nmax_deg, nmaxdeg_vertex;
 	int nrm_start, nrm_end, nvertex_no, norder, num_of_freq_cands;
@@ -3197,7 +3197,7 @@ bool Graph::CheckMaximal(VERTEX* pvertices, int nclique_size, int num_of_exts)
 	return bis_maximal;
 }
 
-int Graph::LoadGraph(char* szgraph_file) // create 1-hop neighbors
+int Graph::LoadGraph(const char* szgraph_file) // create 1-hop neighbors
 {
 	auto l_start = steady_clock::now();
 	Data *pdata;
