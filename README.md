@@ -45,7 +45,7 @@ To track query progress so that users are timely notified when a query completes
 
 <p align="center">
   <!-- <img src="imgs/hpcycle.png"/> -->
-  <img align="center" src="https://github.com/guimuguo/TthinkerQ/blob/main/img/hpcycle.png" width="450" height="300"/>
+  <img align="center" src="https://github.com/guimuguo/TthinkerQ/blob/main/img/hpcycle.png" width="450" height="200"/>
 </p>
   
   
