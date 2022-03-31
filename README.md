@@ -25,11 +25,37 @@ To track query progress so that users are timely notified when a query completes
 
 ### We use four kinds of subgraph queries to demonstrate the programming friendliness of T-thinkerQ as well as its excellent CPU-scalability.
 
-- **The `app_kernel_ol` folder:** given a input vertex set S = {v<sub>1</sub>, v<sub>2</sub>, ...}, parameter γ and minsize, this is the application code for mining maximal γ-quasi-cliques, which include all vertices un S and has size > minsize.
-
+- **The `app_kernel_ol` folder:** Given a minimum degree threshold *γ* ∈ [0, 1], a *γ*-quasi-clique is a subgraph *g* = (*V<sub>g<sub>* , *E<sub>g<sub>*) where each vertex *v* connect to at least *γ* fraction of the other vertices in *g*. Given a input vertex set S = {v<sub>1</sub>, v<sub>2</sub>, ...}, parameter γ and minsize, this is the application code for mining maximal γ-quasi-cliques, which include all vertices in the vertex set S and has size > minsize.
 
 - **The `maximal_check` folder:** This is the postprocessing step, used to remove non-maximal quasi-cliques from the output of `app_kernel_ol`.
 
+<p align="center">
+  <!-- <img src="imgs/qc.png"/> -->
+  <img align="center" src="https://github.com/guimuguo/TthinkerQ/blob/main/img/qc.png" />
+</p>
+  
+- **The `app_scs` folder:** This query finds a subgraph with the largest min-degree among all connected subgraph *g* that contain the query vertex *v<sub>q<sub>* and have *l*≤|*v<sub>q<sub>*|≤h.
+
+<p align="center">
+  <!-- <img src="imgs/scs.png"/> -->
+  <img align="center" src="https://github.com/guimuguo/TthinkerQ/blob/main/img/scs.png" />
+</p>
+  
+- **The `app_hpcycle` folder:** Given two distinct vertices *s* and *t* in *G*, and a hop constraint *k*, this query outputs all paths from *s* to *t* with length at most *k*.
+
+<p align="center">
+  <!-- <img src="imgs/hpcycle.png"/> -->
+  <img align="center" src="https://github.com/guimuguo/TthinkerQ/blob/main/img/hpcycle.png" />
+</p>
+  
+  
+- **The `app_gmatch` folder:** This application sketches Ullmann’s recursive algorithm for subgraph matching, which, given a query graph *G<sub>q<sub>*, retrieves all subgraphs of a data graph *G* that are isomorphic to *G<sub>q<sub>*.
+
+<p align="center">
+  <!-- <img src="imgs/gm.png"/> -->
+  <img align="center" src="https://github.com/guimuguo/TthinkerQ/blob/main/img/gm.png" />
+</p>
+ 
 ## Compilation
 In each folder, `app_kernel_ol` and `maximal_check`, there is a Makefile. Just enter each folder and use the command `make` to compile, and a program named `run` will be generated.
 
@@ -54,8 +80,8 @@ In each folder, `app_kernel_ol` and `maximal_check`, there is a Makefile. Just e
 
 
 ## Demo
-Click [here](https://colab.research.google.com/drive/1Cn0cB9uZ8uOtlPbAfTWw9g0NM9qBrkxC?usp=sharing) for a demo on Google Colab. The notebook first clones the repo and download the [Google-Web](https://snap.stanford.edu/data/web-Google.html) dataset. It then runs the quasi-clique mining program to find maximal results. Finally, it plots the first and second largest quasi-cliques.
-
+Click [here](https://colab.research.google.com/drive/1Cn0cB9uZ8uOtlPbAfTWw9g0NM9qBrkxC?usp=sharing) for a video demo. It then runs the quasi-clique mining program to find all maximal results including the query's vertices.
+  
 ## Requirements
 
 * C++11
