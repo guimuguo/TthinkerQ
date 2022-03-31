@@ -31,7 +31,7 @@ To track query progress so that users are timely notified when a query completes
 
 <p align="center">
   <!-- <img src="imgs/qc.png"/> -->
-  <img align="center" src="https://github.com/guimuguo/TthinkerQ/blob/main/img/qc.png" width="450" height="300"/>
+  <img align="center" src="https://github.com/guimuguo/TthinkerQ/blob/main/img/qc.png" width="400" height="250"/>
 </p>
   
 - **The `app_scs` folder:** This query finds a subgraph with the largest min-degree among all connected subgraph *g* that contain the query vertex *v<sub>q<sub>* and have *l*≤|*v<sub>q<sub>*|≤h.
@@ -53,7 +53,7 @@ To track query progress so that users are timely notified when a query completes
 
 <p align="center">
   <!-- <img src="imgs/gm.png"/> -->
-  <img align="center" src="https://github.com/guimuguo/TthinkerQ/blob/main/img/gm.png" width="450" height="300"/>
+  <img align="center" src="https://github.com/guimuguo/TthinkerQ/blob/main/img/gm.png" width="450" height="200"/>
 </p>
  
 ## Compilation
