@@ -74,12 +74,14 @@ In each folder, `app_kernel_ol`, `maximal_check`, `app_scs`, `app_hpcycle`, `app
         Example: `app_kernel_ol/run input_graph 32 1 30 0.85 200`
 
   2. Queries submission:
-    (1)console_version
+    
+  (1)console_version
+  
     - To submit the query, users run the program in the `client/console_version` folder: `client/console_version/run`. 
     - Then type your query in the prompt: `[min_size] [gamma] [Vertex1_ID] [Vertex2_ID] ...`
       Example: `client/console_version/run 31 0.9 0 1`
   
-    (2)batchFile_version
+  (2)batchFile_version
   
   3. Postprocessing:
       - Each thread (Comper *i*) will write the results it finds to a file `output_i`
