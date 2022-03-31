@@ -83,7 +83,7 @@ In each folder, `app_kernel_ol`, `maximal_check`, `app_scs`, `app_hpcycle`, `app
         
   3. Postprocessing:
       - The output for query<sub>i<sub> will be in `ol_out\query<sub>i<sub>_QueryString`
-      - Each thread (Comper *i*) will write the results it finds to a file `i` file
+      - Each thread (Comper *i*) will write the results it finds to a file named *i*
       - Aggregate all quasi-cliques outputs into one file: `cat ol_out\query<sub>i<sub>_QueryString\* > results`
       - Remove non-maximal quasi-cliques: `maximal_check/quasiCliques results max_results`
 
