@@ -19,7 +19,7 @@ To track query progress so that users are timely notified when a query completes
   <img align="center" src="https://github.com/guimuguo/TthinkerQ/blob/main/img/Lineage_Tracking.png" />
 </p>
 
-We use four kinds of subgraph queries to demonstrate the programming friendliness of T-thinkerQ as well as its excellent CPU-scalability.
+### We use four kinds of subgraph queries to demonstrate the programming friendliness of T-thinkerQ as well as its excellent CPU-scalability.
 
 - **The `app_kernel_ol` folder:** given a input vertex set S = {v<sub>1</sub>, v<sub>2</sub>, ...}, parameter γ and minsize, this is the application code for mining maximal γ-quasi-cliques, which include all vertices un S and has size > minsize.
 
