@@ -60,7 +60,7 @@ To track query progress so that users are timely notified when a query completes
 In each folder, `app_kernel_ol`, `maximal_check`, `app_scs`, `app_hpcycle`, `app_gmatch`, `client/batchFile_version` `client/console_version`, there is a Makefile. Just enter each folder and use the command `make` to compile, and a program named `run` will be generated.
 
 ## Execution
-** Example: Maximal Quasi-Clique Query**
+** Example: Maximal Quasi-Clique Query **
   1. Start the Quasi-clique mining server:
  
       Run the program in the `app_kernel_ol` folder: `app_kernel_ol/run [input_data] [thread_num] [time_split_threshold] [basic_min_size] [basic_gamma] [bigtask_threshold]`, where: 
