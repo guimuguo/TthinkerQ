@@ -82,7 +82,7 @@ In each folder, `app_kernel_ol`, `maximal_check`, `app_scs`, `app_hpcycle`, `app
   (2)batchFile_version. To submit a batch of queries once, users need to run the program in the `client/batchFile_version` folder: `client/batchFile_version/run`. User need put all the queries in the batch_file. The run the porgram: `client/batchFile_version/run batch_file`
         
   3. Postprocessing:
-      - The output for query<sub>i<sub> will be in `ol_out\query<sub>i<sub>_QueryString`
+      - The output for query*<sub>i<sub>* will be in `ol_out\query<sub>i<sub>_QueryString`
       - Each thread (Comper *i*) will write the results it finds to a file named *i*
       - Aggregate all quasi-cliques outputs into one file: `cat ol_out\query<sub>i<sub>_QueryString\* > results`
       - Remove non-maximal quasi-cliques: `maximal_check/quasiCliques results max_results`
