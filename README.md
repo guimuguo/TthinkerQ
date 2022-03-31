@@ -57,22 +57,25 @@ To track query progress so that users are timely notified when a query completes
 </p>
  
 ## Compilation
-In each folder, `app_kernel_ol` and `maximal_check`, there is a Makefile. Just enter each folder and use the command `make` to compile, and a program named `run` will be generated.
+In each folder, `app_kernel_ol`, `maximal_check`, `app_scs`, `app_hpcycle`, `app_gmatch`, `client/batchFile_version` `client/console_version`, there is a Makefile. Just enter each folder and use the command `make` to compile, and a program named `run` will be generated.
 
 ## Execution
-**Workflow A: to Mine Maximal Quasi-Cliques **
-  1. Quasi-clique mining:
+** Maximal Quasi-Clique Query**
+  1. Start the Quasi-clique mining server:
  
-      Run the program in the `app_kernel_ol` folder: `app_kernel_ol/run [input_data] [thread_num] [out-gamma] [in-gamma] [min_size] [time_split_threshold]`, where: 
+      Run the program in the `app_kernel_ol` folder: `app_kernel_ol/run [input_data] [thread_num] [time_split_threshold] [basic_gamma] [basic_min_size] [bigtask_threshold]`, where: 
         - input_data: input graph file where the *i*-th row records the adjacency list of Vertex *i*
         - thread_num: number of threads. We also call each computing thread a comper
-        - out-gamma: user-specified minimum outdegree-ratio threshold
-        - in-gamma: user-specified minimum indegree-ratio threshold
-        - min_size: minimum size threshold; each returned result should have at least so many vertices
         - time_split_threshold: timeout duration threshold. A task running longer than the threshold will decompose into subtasks 
+        - basic_gamma: basic user-specified minimum degree-ratio threshold for all queries. All the following query's gamma should be no less than this basic_gamma
+        - basic_min_size: basic minimum size threshold for all queries; each returned result should have at least so many vertices. All the following query's min_size should be no less than this basic_min_size
+        - bigtask_threshold: bigtask differentiated threshold. For Maximal Quasi-Clique Query, tasks whose candidate set's size larger than this threshold will be regarded as bigTask
 
-        Example: `app_qc/run input_graph 5 0.8 0.9 10 5`
+        Example: `app_kernel_ol/run input_graph 32 1 30 0.85 200`
 
+  2. Queries submission:
+  
+  
   2. Postprocessing:
       - Each thread (Comper *i*) will write the results it finds to a file `output_i`
       - Aggregate all quasi-cliques outputs into one file: `cat output_* > results`
