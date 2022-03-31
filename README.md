@@ -63,20 +63,25 @@ In each folder, `app_kernel_ol`, `maximal_check`, `app_scs`, `app_hpcycle`, `app
 ** Maximal Quasi-Clique Query**
   1. Start the Quasi-clique mining server:
  
-      Run the program in the `app_kernel_ol` folder: `app_kernel_ol/run [input_data] [thread_num] [time_split_threshold] [basic_gamma] [basic_min_size] [bigtask_threshold]`, where: 
+      Run the program in the `app_kernel_ol` folder: `app_kernel_ol/run [input_data] [thread_num] [time_split_threshold] [basic_min_size] [basic_gamma] [bigtask_threshold]`, where: 
         - input_data: input graph file where the *i*-th row records the adjacency list of Vertex *i*
         - thread_num: number of threads. We also call each computing thread a comper
         - time_split_threshold: timeout duration threshold. A task running longer than the threshold will decompose into subtasks 
-        - basic_gamma: basic user-specified minimum degree-ratio threshold for all queries. All the following query's gamma should be no less than this basic_gamma
         - basic_min_size: basic minimum size threshold for all queries; each returned result should have at least so many vertices. All the following query's min_size should be no less than this basic_min_size
+        - basic_gamma: basic user-specified minimum degree-ratio threshold for all queries. All the following query's gamma should be no less than this basic_gamma
         - bigtask_threshold: bigtask differentiated threshold. For Maximal Quasi-Clique Query, tasks whose candidate set's size larger than this threshold will be regarded as bigTask
 
         Example: `app_kernel_ol/run input_graph 32 1 30 0.85 200`
 
   2. Queries submission:
+    (1)console_version
+    - To submit the query, users run the program in the `client/console_version` folder: `client/console_version/run`. 
+    - Then type your query in the prompt: `[min_size] [gamma] [Vertex1_ID] [Vertex2_ID] ...`
+      Example: `client/console_version/run 31 0.9 0 1`
   
+    (2)batchFile_version
   
-  2. Postprocessing:
+  3. Postprocessing:
       - Each thread (Comper *i*) will write the results it finds to a file `output_i`
       - Aggregate all quasi-cliques outputs into one file: `cat output_* > results`
       - Remove non-maximal quasi-cliques: `maximal_check/quasiCliques results max_results`
