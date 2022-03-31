@@ -77,9 +77,10 @@ In each folder, `app_kernel_ol`, `maximal_check`, `app_scs`, `app_hpcycle`, `app
     
   (1)console_version
   
-    - To submit the query, users run the program in the `client/console_version` folder: `client/console_version/run`. 
-    - Then type your query in the prompt: `[min_size] [gamma] [Vertex1_ID] [Vertex2_ID] ...`
-      Example: `client/console_version/run 31 0.9 0 1`
+      - To submit the query, users run the program in the `client/console_version` folder: `client/console_version/run`. 
+      - Then type your query in the prompt: `[min_size] [gamma] [Vertex1_ID] [Vertex2_ID] ...`
+      
+  Example: `client/console_version/run 31 0.9 0 1`
   
   (2)batchFile_version
   
