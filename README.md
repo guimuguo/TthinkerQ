@@ -77,9 +77,12 @@ In each folder, `app_kernel_ol`, `maximal_check`, `app_scs`, `app_hpcycle`, `app
     
   (1)console_version. To submit the query, users run the program in the `client/console_version` folder: `client/console_version/run`. Then type your query in the prompt: `[min_size] [gamma] [Vertex1_ID] [Vertex2_ID] ...`
       
-  Example: `client/console_version/run 31 0.9 0 1`
+  Example: 
+  `client/console_version/run`
   
-  (2)batchFile_version. To submit a batch of queries once, users need to run the program in the `client/batchFile_version` folder: `client/batchFile_version/run`. User need put all the queries in the batch_file. The run the porgram: `client/batchFile_version/run batch_file`
+  ` 31 0.9 0 1`
+  
+  (2)batchFile_version. To submit a batch of queries once, users need to run the program in the `client/batchFile_version` folder: `client/batchFile_version/run`. User need put all the queries in the batch_file. To run the porgram: `client/batchFile_version/run batch_file`
         
   3. Postprocessing:
       - The output for query_i will be in `ol_out\query_i_QueryString`
