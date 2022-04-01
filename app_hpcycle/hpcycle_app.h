@@ -18,6 +18,7 @@
 
 #define TIME_THRESHOLD 0.1
 #define NPATH_THRESH 500000
+#define RECORD_RESULT
 
 #include "../system/workerOL.h"
 #include "../system/task.h"
@@ -758,14 +759,18 @@ public:
             if(valid) {
                 // satisfy length requirement
                 if(total_weight<=thlength) {
-                    // fprintf(gfpout, "@ "); // * means 2 Join
-                    // for(int i=0; i<hpp.hppath.size(); i++) {
-                    //     for(int j=0; j<hpp.hppath[i].path.size(); j++) {
-                    //         if(i!=0 && j==0) continue; 
-                    //         fprintf(gfpout, "%d ", hpp.hppath[i].path[j]);
-                    //     }
-                    // }
-                    // fprintf(gfpout, "\n");
+
+#ifdef RECORD_RESULT
+                    fprintf(gfpout, "@ "); // * means 2 Join
+                    for(int i=0; i<hpp.hppath.size(); i++) {
+                        for(int j=0; j<hpp.hppath[i].path.size(); j++) {
+                            if(i!=0 && j==0) continue; 
+                            fprintf(gfpout, "%d ", hpp.hppath[i].path[j]);
+                        }
+                    }
+                    fprintf(gfpout, "\n");
+#endif
+
                     counter++;
                 }
             }
@@ -823,11 +828,14 @@ public:
         
         if(s == d && bwrite) {
             // report simple path, directly path find, w/o HP-index
-            // for(int i=0; i<path.size(); i++)
-            // {
-            //     fprintf(gfpout, "%d ", path[i]);
-            // }
-            // fprintf(gfpout, "\n");
+
+#ifdef RECORD_RESULT
+            for(int i=0; i<path.size(); i++)
+            {
+                fprintf(gfpout, "%d ", path[i]);
+            }
+            fprintf(gfpout, "\n");
+#endif
 
             counter++;
 
@@ -948,13 +956,16 @@ public:
                     }
                     // satisfy length requirement
                     if(valid && lp.size()+rp.size() <= thlength) {
-                        // fprintf(gfpout, "* "); // * means 2 Join
-                        // for(int i=0; i<lp.size(); i++)
-                        //     fprintf(gfpout, "%d ", lp[i]);
-                        // fprintf(gfpout, "%d ", lhp);
-                        // for(int i=rp.size()-1; i>=0; i--) 
-                        //     fprintf(gfpout, "%d ", rp[i]);
-                        // fprintf(gfpout, "\n");
+
+#ifdef RECORD_RESULT
+                        fprintf(gfpout, "* "); // * means 2 Join
+                        for(int i=0; i<lp.size(); i++)
+                            fprintf(gfpout, "%d ", lp[i]);
+                        fprintf(gfpout, "%d ", lhp);
+                        for(int i=rp.size()-1; i>=0; i--) 
+                            fprintf(gfpout, "%d ", rp[i]);
+                        fprintf(gfpout, "\n");
+#endif
 
                         counter++;
                     }
@@ -1004,13 +1015,16 @@ public:
                         }
                         // satisfy length requirement
                         if(valid) {
-                            // fprintf(gfpout, "* "); // * means 2 Join
-                            // for(int i=0; i<lp.size(); i++)
-                            //     fprintf(gfpout, "%d ", lp[i]);
-                            // fprintf(gfpout, "%d ", hp);
-                            // for(int i=rp.size()-1; i>=0; i--) 
-                            //     fprintf(gfpout, "%d ", rp[i]);
-                            // fprintf(gfpout, "\n");
+
+#ifdef RECORD_RESULT
+                            fprintf(gfpout, "* "); // * means 2 Join
+                            for(int i=0; i<lp.size(); i++)
+                                fprintf(gfpout, "%d ", lp[i]);
+                            fprintf(gfpout, "%d ", hp);
+                            for(int i=rp.size()-1; i>=0; i--) 
+                                fprintf(gfpout, "%d ", rp[i]);
+                            fprintf(gfpout, "\n");
+#endif
 
                             counter++;
                         }
@@ -1045,13 +1059,16 @@ public:
                         }
                         // satisfy length requirement
                         if(valid) {
-                            // fprintf(gfpout, "* "); // * means 2 Join
-                            // for(int i=0; i<lp.size(); i++)
-                            //     fprintf(gfpout, "%d ", lp[i]);
-                            // fprintf(gfpout, "%d ", hp);
-                            // for(int i=rp.size()-1; i>=0; i--) 
-                            //     fprintf(gfpout, "%d ", rp[i]);
-                            // fprintf(gfpout, "\n");
+
+#ifdef RECORD_RESULT
+                            fprintf(gfpout, "* "); // * means 2 Join
+                            for(int i=0; i<lp.size(); i++)
+                                fprintf(gfpout, "%d ", lp[i]);
+                            fprintf(gfpout, "%d ", hp);
+                            for(int i=rp.size()-1; i>=0; i--) 
+                                fprintf(gfpout, "%d ", rp[i]);
+                            fprintf(gfpout, "\n");
+#endif
 
                             counter++;
                         }
@@ -1122,27 +1139,24 @@ public:
                                 }
                                 if(valid2) {
                                     
-                                    // fprintf(gfpout, "@ "); // @ means 3 Join
+#ifdef RECORD_RESULT
+                                    fprintf(gfpout, "@ "); // @ means 3 Join
 
-                                    // for(int i=0; i<lp.size(); i++) {
-                                    //     fprintf(gfpout, "%d ", lp[i]);    
-                                    // }
-
-                                    // fprintf(gfpout, "=======");    
+                                    for(int i=0; i<lp.size(); i++) {
+                                        fprintf(gfpout, "%d ", lp[i]);    
+                                    }
                                     
-                                    // for(int i=0; i<hpp.hppath.size(); i++) {
-                                    //     for(int j=0; j<hpp.hppath[i].path.size(); j++) {
-                                    //         if(i!=0 && j==0) continue;
-                                    //         fprintf(gfpout, "%d ", hpp.hppath[i].path[j]);
-                                    //     }
-                                    // }
+                                    for(int i=0; i<hpp.hppath.size(); i++) {
+                                        for(int j=0; j<hpp.hppath[i].path.size(); j++) {
+                                            if(i!=0 && j==0) continue;
+                                            fprintf(gfpout, "%d ", hpp.hppath[i].path[j]);
+                                        }
+                                    }  
 
-                                    // fprintf(gfpout, "=======");    
-
-                                    // for(int i=rp.size()-1; i>=0; i--) 
-                                    //     fprintf(gfpout, "%d ", rp[i]);
-                                    // fprintf(gfpout, "\n");
-
+                                    for(int i=rp.size()-1; i>=0; i--) 
+                                        fprintf(gfpout, "%d ", rp[i]);
+                                    fprintf(gfpout, "\n");
+#endif
                                     counter++;
                                 } 
                             }
@@ -1188,20 +1202,22 @@ public:
                                     }
                                 }
                                 if(valid2) {
-                                    
-                                    // fprintf(gfpout, "@ "); // @ means 3 Join
-                                    // for(int i=0; i<lp.size(); i++)
-                                    //     fprintf(gfpout, "%d ", lp[i]);
 
-                                    // for(int i=0; i<hpp.hppath.size(); i++) {
-                                    //     for(int j=0; j<hpp.hppath[i].path.size(); j++) {
-                                    //         if(i!=0 && j==0) continue;
-                                    //         fprintf(gfpout, "%d ", hpp.hppath[i].path[j]);
-                                    //     }
-                                    // }
-                                    // for(int i=rp.size()-1; i>=0; i--) 
-                                    //     fprintf(gfpout, "%d ", rp[i]);
-                                    // fprintf(gfpout, "\n");
+#ifdef RECORD_RESULT                    
+                                    fprintf(gfpout, "@ "); // @ means 3 Join
+                                    for(int i=0; i<lp.size(); i++)
+                                        fprintf(gfpout, "%d ", lp[i]);
+
+                                    for(int i=0; i<hpp.hppath.size(); i++) {
+                                        for(int j=0; j<hpp.hppath[i].path.size(); j++) {
+                                            if(i!=0 && j==0) continue;
+                                            fprintf(gfpout, "%d ", hpp.hppath[i].path[j]);
+                                        }
+                                    }
+                                    for(int i=rp.size()-1; i>=0; i--) 
+                                        fprintf(gfpout, "%d ", rp[i]);
+                                    fprintf(gfpout, "\n");
+#endif
 
                                     counter++;
                                 }
@@ -1255,17 +1271,20 @@ public:
                         if(valid2) {
                             // check if satisfy length requirement
                             if(total_weight+p.size()<=thlength) {
-                                // fprintf(gfpout, "@ ");
+
+#ifdef RECORD_RESULT
+                                fprintf(gfpout, "@ ");
                                 
-                                // for(int i=0; i<hpp.hppath.size(); i++) {
-                                //     for(int j=0; j<hpp.hppath[i].path.size(); j++) {
-                                //         if(i!=0 && j==0) continue; 
-                                //         fprintf(gfpout, "%d ", hpp.hppath[i].path[j]);
-                                //     }
-                                // }
-                                // for(int i=p.size()-1; i>=0; i--) 
-                                //     fprintf(gfpout, "%d ", p[i]);
-                                // fprintf(gfpout, "\n");
+                                for(int i=0; i<hpp.hppath.size(); i++) {
+                                    for(int j=0; j<hpp.hppath[i].path.size(); j++) {
+                                        if(i!=0 && j==0) continue; 
+                                        fprintf(gfpout, "%d ", hpp.hppath[i].path[j]);
+                                    }
+                                }
+                                for(int i=p.size()-1; i>=0; i--) 
+                                    fprintf(gfpout, "%d ", p[i]);
+                                fprintf(gfpout, "\n");
+#endif
 
                                 counter++;
                                 
@@ -1289,18 +1308,21 @@ public:
                         if(valid2) {
                             // check if satisfy length requirement
                             if(total_weight+p.size()<=thlength) {
-                                // fprintf(gfpout, "@ ");
 
-                                // for(int i=0; i<p.size(); i++) 
-                                //     fprintf(gfpout, "%d ", p[i]);
+#ifdef RECORD_RESULT                              
+                                fprintf(gfpout, "@ ");
 
-                                // for(int i=0; i<hpp.hppath.size(); i++) {
-                                //     for(int j=0; j<hpp.hppath[i].path.size(); j++) {
-                                //         if(i!=0 && j==0) continue; 
-                                //         fprintf(gfpout, "%d ", hpp.hppath[i].path[j]);
-                                //     }
-                                // } 
-                                // fprintf(gfpout, "\n");
+                                for(int i=0; i<p.size(); i++) 
+                                    fprintf(gfpout, "%d ", p[i]);
+
+                                for(int i=0; i<hpp.hppath.size(); i++) {
+                                    for(int j=0; j<hpp.hppath[i].path.size(); j++) {
+                                        if(i!=0 && j==0) continue; 
+                                        fprintf(gfpout, "%d ", hpp.hppath[i].path[j]);
+                                    }
+                                } 
+                                fprintf(gfpout, "\n");
+#endif
 
                                 counter++;
                             }
@@ -1698,14 +1720,14 @@ public:
                 bucket & bucket = q.ltable.get_bucket(context.end);
                 bucket_map &kvmap = bucket.get_map();
                 if(kvmap.find(context.end) != kvmap.end()) {
-                    // std::cout<<"hp: "<<context.end<<" has "<<kvmap[context.end].size()<<" paths."<<std::endl;
+                    
                     for(auto& lp: kvmap[context.end]) {
                         if(lp.size() <= context.thlength) {
-                            // fprintf(gfpout, "* "); // * means 2 Join
-                            // for(int i=0; i<lp.size(); i++)
-                            //     fprintf(gfpout, "%d ", lp[i]);
-                            // fprintf(gfpout, "%d ", context.end);
-                            // fprintf(gfpout, "\n");
+                            fprintf(gfpout, "* "); // * means 2 Join
+                            for(int i=0; i<lp.size(); i++)
+                                fprintf(gfpout, "%d ", lp[i]);
+                            fprintf(gfpout, "%d ", context.end);
+                            fprintf(gfpout, "\n");
                             counter++;
                         }
                     }
@@ -1749,11 +1771,11 @@ public:
                     for(auto& rp: kvmap[context.start]) {
                         // satisfy length requirement
                         if(rp.size() <= context.thlength) {
-                            // fprintf(gfpout, "* "); // * means 2 Join
-                            // fprintf(gfpout, "%d ", context.start);
-                            // for(int i=rp.size()-1; i>=0; i--)
-                            //     fprintf(gfpout, "%d ", rp[i]);
-                            // fprintf(gfpout, "\n");
+                            fprintf(gfpout, "* "); // * means 2 Join
+                            fprintf(gfpout, "%d ", context.start);
+                            for(int i=rp.size()-1; i>=0; i--)
+                                fprintf(gfpout, "%d ", rp[i]);
+                            fprintf(gfpout, "\n");
 
                             counter++;
                         }
@@ -1802,7 +1824,13 @@ public:
             ftime(&q.end_t);
             double totaltime = q.end_t.time-q.start_t.time+(double)(q.end_t.millitm-q.start_t.millitm)/1000;
             cout<<"Query "<<get_queryID()<<" total time: "<<totaltime<<endl;
-            cout<<"Query "<<get_queryID()<<" total count: "<<(ULL)accumulate(q.counters.begin(), q.counters.end(), 0)<<endl;
+
+            ULL total_results = 0;
+            for(ui i=0; i<32; ++i)
+            {
+                total_results += q.counters[i];
+            }
+            cout<<"Query "<<get_queryID()<<" total count: "<< total_results <<endl;
             return false;
         }
 	}
@@ -1827,6 +1855,6 @@ public:
     void load_data(const char* file_path, int num_compers)
     {
         g.loadGraphFromFile(file_path);
-        g.build_graph_idx(4, 250, 250, num_compers); // User defined parameters
+        g.build_graph_idx(4, 60, 60, num_compers); // User defined parameters
     }
 };

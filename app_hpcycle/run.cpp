@@ -14,7 +14,7 @@ using namespace std::chrono;
 
 int main(int argc, char *argv[])
 {
-    const char *file_path = "/home/lyuan/directed_data_lyuheng/epinions_d"; // blueblaze path
+    const char *file_path = "../data/GSE1730_q";
     int num_compers = 32;
 
     HCEWorker worker(num_compers);
@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 
     float duration = (float)duration_cast<milliseconds>(end_t - start_t).count() / 1000;
 
-    cout<<"Total build Index Graph time: "<<duration/<<" seconds"<<endl;
+    cout<<"Total build Index Graph time: "<<duration<<" seconds"<<endl;
 
     worker.run();
 
