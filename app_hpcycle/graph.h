@@ -710,13 +710,13 @@ void Graph::build_graph_idx(int maxlen_threshold, int hp_deg_threshold, int hp_d
 
     // do serialization on disk
 
-    ifbinstream hpadj("./baidu_hpadj");
-    hpadj << mhp_adjlist;
-    hpadj.close();
+    // ifbinstream hpadj("./baidu_hpadj");
+    // hpadj << mhp_adjlist;
+    // hpadj.close();
 
-    ifbinstream hpadj_i("./baidu_hpadj_i");
-    hpadj_i << mhp_adjlist_i;
-    hpadj_i.close();
+    // ifbinstream hpadj_i("./baidu_hpadj_i");
+    // hpadj_i << mhp_adjlist_i;
+    // hpadj_i.close();
     /**/
 
     // ==================================
@@ -780,7 +780,7 @@ void Graph::build_graph_idx(int maxlen_threshold, int hp_deg_threshold, int hp_d
     }
     cout<<"# edges in G_idx (out): "<<total_p<<endl;
 
-    generateQueries(1000, 5);
+    // generateQueries(1000, 5);
 }
 
 /*
