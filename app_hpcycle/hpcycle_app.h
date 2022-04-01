@@ -1826,7 +1826,7 @@ public:
             cout<<"Query "<<get_queryID()<<" total time: "<<totaltime<<endl;
 
             ULL total_results = 0;
-            for(ui i=0; i<32; ++i)
+            for(int i=0; i<32; ++i)
             {
                 total_results += q.counters[i];
             }
