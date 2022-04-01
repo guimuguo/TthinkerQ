@@ -739,11 +739,11 @@ void Graph::build_graph_idx(int maxlen_threshold, int hp_deg_threshold, int hp_d
     for(auto& pair: mhp_adjlist_i) {
         auto hp = pair.first;
         
-        for(int j=0; j<mhp_adjlist_i[hp].size(); j++) {
-            int prev = 0;
-            if(prev > mhp_adjlist_i[hp][j].weight()) cout << "NOT SORT" << endl;
-            prev = mhp_adjlist_i[hp][j];
-        }
+        // for(int j=0; j<mhp_adjlist_i[hp].size(); j++) {
+        //     int prev = 0;
+        //     if(prev > mhp_adjlist_i[hp][j].weight()) cout << "NOT SORT" << endl;
+        //     prev = mhp_adjlist_i[hp][j];
+        // }
         /* a switch
         for(int j=0; j<mhp_adjlist[hp].size(); j++) {
             cout<<"From "<<mhp_adjlist[hp][j].u<<" to "<<mhp_adjlist[hp][j].v<<", weight: "<<mhp_adjlist[hp][j].weight()<<", path: ";
