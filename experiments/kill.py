@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import subprocess
 import os
-ps = subprocess.Popen(['ipcs'], stdout=subprocess.PIPE, text=True).communicate()[0].split('\n')
+ps = subprocess.Popen(['ipcs'], stdout=subprocess.PIPE).communicate()[0].split('\n')
 
 mark = 0
 idx = 0
