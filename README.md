@@ -41,7 +41,7 @@ To track query progress so that users are timely notified when a query completes
   <img align="center" src="https://github.com/guimuguo/TthinkerQ/blob/main/img/scs.png" width="450" height="300"/>
 </p>
   
-- **The `app_hpcycle` folder:** Given two distinct vertices *s* and *t* in *G*, and a hop constraint *k*, this query outputs all paths from *s* to *t* with length at most *k*.
+- **The `app_cycle` and `app_hpcycle` folder:** Given two distinct vertices *s* and *t* in *G*, and a hop constraint *k*, this query outputs all paths from *s* to *t* with length at most *k*.
 
 <p align="center">
   <!-- <img src="imgs/hpcycle.png"/> -->
