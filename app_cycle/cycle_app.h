@@ -10,6 +10,8 @@
 
 #include "graph.h"
 
+#define RECORD_RESULT
+
 typedef unsigned long long int ULL;
 
 float TIME_THRESHOLD = 0.1;
@@ -97,10 +99,14 @@ public:
         path.push_back(s);
         if(s == d) {
             // report simple path
-            // for(int i=0; i<path.size(); i++)
-            //     fprintf(gfpout, "%d ", path[i]);
-            // fprintf(gfpout, "\n");
-            // fflush(gfpout);
+
+#ifdef RECORD_RESULT
+            for(int i=0; i<path.size(); i++)
+                fprintf(gfpout, "%d ", path[i]);
+            fprintf(gfpout, "\n");
+            fflush(gfpout);
+#endif
+
             counter++;
         } else {
             if(path.size() <= length) {
