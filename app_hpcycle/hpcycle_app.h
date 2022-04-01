@@ -482,7 +482,7 @@ public:
                         path.pop_back();
                     } else {
                         path.pop_back();
-                        break; 
+                        break;
                     }
                 }
             }
@@ -555,6 +555,7 @@ public:
                     jw.mid_paths.push_back(path);
                     jw.total_weights.push_back(total_weight);
 
+                    // Step 2: add a TYPE_2 task
                     HCETask *t = new HCETask();
                     t->context.thlength = thlength;
                     t->context.joinwrapper = jw;
@@ -562,21 +563,21 @@ public:
                     t->context.direction = direction;
                     add_task(t);
                     jw.clear();
+                }
 
-                    rg.lstart = lastend;
-                    rg.lend = size;
-                    rg.rstart = 0;
-                    rg.rend = 1;
-                    if(lastend != size) {
-                        jw.range_sd.push_back({cur,cur});
-                        jw.range_map.push_back(rg);
-                        jw.mid_paths.push_back(path);
-                        jw.total_weights.push_back(total_weight);
-                    }
+                rg.lstart = lastend;
+                rg.lend = size;
+                rg.rstart = 0;
+                rg.rend = 1;
+                if(lastend != size) {
+                    jw.range_sd.push_back({cur,cur});
+                    jw.range_map.push_back(rg);
+                    jw.mid_paths.push_back(path);
+                    jw.total_weights.push_back(total_weight);
                 }
             }
         }
-
+        
         int new_weight;
         for(auto &ne: g.mhp_adjlist_i[cur]) {
             if(visited.find(ne.v) == visited.end()) {
@@ -1291,7 +1292,8 @@ public:
                             }
                         }
                     }
-                } else 
+                } 
+                else 
                 {
                     bucket & bucket = q.ltable.get_bucket(s);
                     bucket_map & kvmap = bucket.get_map();
@@ -1723,11 +1725,14 @@ public:
                     
                     for(auto& lp: kvmap[context.end]) {
                         if(lp.size() <= context.thlength) {
+
+#ifdef RECORD_RESULT
                             fprintf(gfpout, "* "); // * means 2 Join
                             for(int i=0; i<lp.size(); i++)
                                 fprintf(gfpout, "%d ", lp[i]);
                             fprintf(gfpout, "%d ", context.end);
                             fprintf(gfpout, "\n");
+#endif
                             counter++;
                         }
                     }
@@ -1756,7 +1761,7 @@ public:
         else if(q.category == CASE_3) {
             // Case 3, no STAGE_1
             if(q.cur_stage_num == STAGE_2) // flag for stage 1
-            {   
+            {
                 counter = q.counters[thread_id];
                 ftime(&g.gtime_start[thread_id]);
                 dfs_with_hp(context.start, context.end, context.thlength, context.visited, context.gpath, gfpout, IN, true, q); 
@@ -1771,11 +1776,14 @@ public:
                     for(auto& rp: kvmap[context.start]) {
                         // satisfy length requirement
                         if(rp.size() <= context.thlength) {
+
+#ifdef RECORD_RESULT
                             fprintf(gfpout, "* "); // * means 2 Join
                             fprintf(gfpout, "%d ", context.start);
                             for(int i=rp.size()-1; i>=0; i--)
                                 fprintf(gfpout, "%d ", rp[i]);
                             fprintf(gfpout, "\n");
+#endif
 
                             counter++;
                         }
@@ -1815,6 +1823,7 @@ public:
     virtual bool postprocess(HCEQuery &q) 
     {
 		cout<<"[INFO] Query "<<get_queryID()<<", Stage "<<q.cur_stage_num<<"/"<<MAX_STAGE_NUM<<" is done."<<endl;
+        
         if(q.cur_stage_num < MAX_STAGE_NUM) {
             q.cur_stage_num++;
             task_spawn(q);

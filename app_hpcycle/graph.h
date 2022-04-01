@@ -698,7 +698,6 @@ void Graph::build_graph_idx(int maxlen_threshold, int hp_deg_threshold, int hp_d
         int tid = omp_get_thread_num();
         dfs_build_gidx(mvec_hp[i], mvec_hp[i], mset_hp, cvisited[tid], cpath[tid]); 
     }
-#pragma omp barrier
 
     // sort mhp_adjlist_i w.r.t. weight
 #pragma omp parallel for schedule(dynamic, 1) num_threads(32)
@@ -706,7 +705,6 @@ void Graph::build_graph_idx(int maxlen_threshold, int hp_deg_threshold, int hp_d
         sort(mhp_adjlist[mvec_hp[i]].begin(), mhp_adjlist[mvec_hp[i]].end(), vec_sort);
         sort(mhp_adjlist_i[mvec_hp[i]].begin(), mhp_adjlist_i[mvec_hp[i]].end(), vec_sort);
     }
-#pragma omp barrier
 
     // do serialization on disk
 
