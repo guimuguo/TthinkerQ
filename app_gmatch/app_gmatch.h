@@ -446,10 +446,12 @@ public:
 		double drun_time;
 
         if(cur_depth == query_graph.getVerticesCount()) {
-            // for(int i=0; i<cur_depth; i++)
-            //     fprintf(gfpout, "%d ", embedding[i]);
-            // fprintf(gfpout, "\n");
+            for(int i=0; i<cur_depth; i++)
+                fprintf(gfpout, "%d ", embedding[i]);
+            fprintf(gfpout, "\n");
+
             counter++;
+            
             // if(counter == 100000) {
             //     ftime(&q.end_t);
             //     double totaltime = q.end_t.time-q.start_t.time+(double)(q.end_t.millitm-q.start_t.millitm)/1000;
