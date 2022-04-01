@@ -57,7 +57,7 @@ To track query progress so that users are timely notified when a query completes
 </p>
  
 ## Compilation
-In each folder, `app_kernel_ol`, `maximal_check`, `app_scs`, `app_hpcycle`, `app_gmatch`, `client/batchFile_version` `client/console_version`, there is a Makefile. Just enter each folder and use the command `make` to compile, and a program named `run` will be generated.
+In each folder, `app_kernel_ol`, `maximal_check`, `app_scs`, `app_cycle`, `app_hpcycle`, `app_gmatch`, `client/batchFile_version` `client/console_version`, there is a Makefile. Just enter each folder and use the command `make` to compile, and a program named `run` will be generated.
 
 ## Execution
 **Example: Maximal Quasi-Clique Query**
