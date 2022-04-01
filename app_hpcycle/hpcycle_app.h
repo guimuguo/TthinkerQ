@@ -258,7 +258,7 @@ class HCEComper: public Comper<HCETask, HCEQuery>
 {
 public:
 
-    int counter;
+    ULL counter;
     vector<bool> cvisited, cvisited2;
 
     HCEComper()
