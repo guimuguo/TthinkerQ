@@ -91,8 +91,13 @@ In each folder, `app_kernel_ol`, `maximal_check`, `app_scs`, `app_cycle`, `app_h
       - Remove non-maximal quasi-cliques: `maximal_check/quasiCliques results max_results`
 
 
-## Demo
-Click [here](https://www.youtube.com/watch?v=7doA--qe11U) for a video demo of Quasi-Clique Mining. It will find all maximal results including the query's vertices. We also have the demo for [Community Search](https://www.youtube.com/watch?v=LAJ03Xb3g7A).
+## Demo Video
+[Quasi-Clique Mining](https://www.youtube.com/watch?v=7doA--qe11U). 
+[Community Search](https://www.youtube.com/watch?v=LAJ03Xb3g7A).
+[Hop-Constrained s-t Path Enumeration](https://www.youtube.com/watch?v=Vovg6I3N3Yg).
+[Subgraph Matching](https://www.youtube.com/watch?v=1y5XtrYQRxM).
+
+
   
 ## Requirements
 
