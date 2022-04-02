@@ -92,13 +92,10 @@ In each folder, `app_kernel_ol`, `maximal_check`, `app_scs`, `app_cycle`, `app_h
 
 
 ## Demo Video
-[Quasi-Clique Mining](https://www.youtube.com/watch?v=7doA--qe11U). 
-  
-[Community Search](https://www.youtube.com/watch?v=LAJ03Xb3g7A).
-  
-[Hop-Constrained s-t Path Enumeration](https://www.youtube.com/watch?v=Vovg6I3N3Yg).
-  
-[Subgraph Matching](https://www.youtube.com/watch?v=1y5XtrYQRxM).
+* [Quasi-Clique Mining](https://www.youtube.com/watch?v=7doA--qe11U)
+* [Community Search](https://www.youtube.com/watch?v=LAJ03Xb3g7A)
+* [Hop-Constrained s-t Path Enumeration](https://www.youtube.com/watch?v=Vovg6I3N3Yg)
+* [Subgraph Matching](https://www.youtube.com/watch?v=1y5XtrYQRxM)
 
 
   
