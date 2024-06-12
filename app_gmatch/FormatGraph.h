@@ -304,13 +304,13 @@ typedef unsigned int uintV;
 typedef unsigned long long int uintE;
 
 
-class Graph
+class FormatGraph
 {
 public:
-    Graph() {}
-    Graph(const std::string &filename);
+    FormatGraph() {}
+    FormatGraph(const std::string &filename);
 
-    virtual ~Graph() {}
+    virtual ~FormatGraph() {}
 
     size_t GetEdgeCount() const { return edge_count_; }
     size_t GetVertexCount() const { return vertex_count_; }
@@ -345,7 +345,7 @@ private:
     size_t edge_count_;
 };
 
-Graph::Graph(const std::string &filename)
+FormatGraph::FormatGraph(const std::string &filename)
 {
     std::string suffix = filename.substr(filename.rfind(".") + 1);
     if (suffix == "bin")
@@ -362,7 +362,7 @@ Graph::Graph(const std::string &filename)
     }
 }
 
-void Graph::GetMaxDegree()
+void FormatGraph::GetMaxDegree()
 {
     ull max_deg = 0;
     for (size_t i = 0; i < vertex_count_; ++i)
@@ -372,7 +372,7 @@ void Graph::GetMaxDegree()
     std::cout << "max degree=" << max_deg << std::endl;
 }
 
-void Graph::ReMapVertexId()
+void FormatGraph::ReMapVertexId()
 {
     // 1. find the root vertex with largest degree
     size_t max_degree = 0;
@@ -469,7 +469,7 @@ void Graph::ReMapVertexId()
     cols_ = new_cols_;
 }
 
-void Graph::readSnapFile(const std::string &filename)
+void FormatGraph::readSnapFile(const std::string &filename)
 {
     Timer timer;
     timer.StartTimer();
@@ -561,7 +561,7 @@ void Graph::readSnapFile(const std::string &filename)
     timer.PrintElapsedMicroSeconds("reading CSR Snap file");
 }
 
-void Graph::readBinFile(const std::string &filename)
+void FormatGraph::readBinFile(const std::string &filename)
 {
     vertex_count_ = 0;
     edge_count_ = 0;
@@ -601,7 +601,7 @@ void Graph::readBinFile(const std::string &filename)
     timer.PrintElapsedMicroSeconds("reading CSR bin file");  
 }
 
-void Graph::readGraphFile(const std::string &filename)
+void FormatGraph::readGraphFile(const std::string &filename)
 {
     vertex_count_ = 0;
     edge_count_ = 0;
@@ -654,7 +654,7 @@ void Graph::readGraphFile(const std::string &filename)
     }
 }
 
-void Graph::readLVIDFile(const std::string &filename)
+void FormatGraph::readLVIDFile(const std::string &filename)
 {
     vertex_count_ = 0;
     edge_count_ = 0;
@@ -740,7 +740,7 @@ void Graph::readLVIDFile(const std::string &filename)
     std::cout << "finish building CSR" << std::endl;
 }
 
-void Graph::writeBinFile(const std::string &filename)
+void FormatGraph::writeBinFile(const std::string &filename)
 {
     std::string prefix = filename.substr(0, filename.rfind("."));
 
@@ -765,7 +765,7 @@ void Graph::writeBinFile(const std::string &filename)
     timer.PrintElapsedMicroSeconds("writing CSR bin file");
 }
 
-void Graph::writeGraphFile(const std::string &filename)
+void FormatGraph::writeGraphFile(const std::string &filename)
 {   
     std::string prefix = filename.substr(0, filename.rfind("."));
 
@@ -804,7 +804,7 @@ void Graph::writeGraphFile(const std::string &filename)
     timer.PrintElapsedMicroSeconds("writing Graph file");
 }
 
-void Graph::Preprocess() {
+void FormatGraph::Preprocess() {
     // remove dangling nodes
     // self loops
     // parallel edges
