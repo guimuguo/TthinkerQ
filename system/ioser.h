@@ -226,6 +226,13 @@ ifbinstream & operator<<(ifbinstream & m, size_t i)
     return m;
 }
 
+ifbinstream & operator<<(ifbinstream & m, unsigned int i)
+{
+    m.raw_bytes(&i, sizeof(unsigned int));
+    return m;
+}
+
+
 ifbinstream & operator<<(ifbinstream & m, bool i)
 {
     m.raw_bytes(&i, sizeof(bool));
@@ -479,6 +486,12 @@ public:
 ofbinstream & operator>>(ofbinstream & m, size_t & i)
 {
     i = *(size_t*)m.raw_bytes(sizeof(size_t));
+    return m;
+}
+
+ofbinstream & operator>>(ofbinstream & m, unsigned int & i)
+{
+    i = *(unsigned int*)m.raw_bytes(sizeof(unsigned int));
     return m;
 }
 
