@@ -10,21 +10,21 @@
 
 struct Transaction
 {
-	int length;
-	int *t;
+	ui length;
+	ui *t;
 };
 
 class Data
 {
 public:
 	Transaction* mptransaction;
-	int micapacity;
+	ui micapacity;
 
 	
 	Data(char *filename);
 	~Data();
 
-	int isOpen();
+	ui isOpen();
 	Transaction *getNextTransaction();
   
 private:
@@ -43,7 +43,7 @@ Data::Data(char *filename)
 	}
 
 	mptransaction = new Transaction;
-	mptransaction->t = new int[INIT_TRANS_LEN]; // transaction container; one transaction is the adj-list of one node
+	mptransaction->t = new ui[INIT_TRANS_LEN]; // transaction container; one transaction is the adj-list of one node
 	mptransaction->length = 0;
 	micapacity = INIT_TRANS_LEN;
 
@@ -60,7 +60,7 @@ Data::~Data()
 	}
 }
 
-int Data::isOpen()
+ui Data::isOpen()
 {
 	if(in)
 		return 1;
@@ -76,12 +76,12 @@ Transaction *Data::getNextTransaction()
 
 	// read list of items
 	do {
-		int item=0, pos=0;
+		ui item=0, pos=0;
 		c = getc(in);
 		while((c >= '0') && (c <= '9'))
 		{
 			item *=10;
-			item += int(c)-int('0');
+			item += ui(c)-ui('0');
 			c = getc(in);
 			pos++;
 		}
@@ -94,10 +94,10 @@ Transaction *Data::getNextTransaction()
 			}
 			else
 			{
-				int *ptrans;
+				ui *ptrans;
 				micapacity = 2*micapacity; // like std::vector, capacity reached so double the capacity
-				ptrans = new int[micapacity];
-				memcpy(ptrans, mptransaction->t, sizeof(int)*mptransaction->length);
+				ptrans = new ui[micapacity];
+				memcpy(ptrans, mptransaction->t, sizeof(ui)*mptransaction->length);
 				delete []mptransaction->t;
 				mptransaction->t = ptrans;
 				mptransaction->t[mptransaction->length] = item;

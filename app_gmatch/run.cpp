@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
     fg.loadGraphFromFile(file_path);
     fg.graphDump();
 #else
-    char *file_path = "../data/amazon.graph";
+    char *file_path = "/home/lyuan/graph_data/gmatch_data/GSE1730.graph";
     int num_compers = 32;
 
     GMWorker worker(num_compers);

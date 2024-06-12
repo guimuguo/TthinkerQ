@@ -6,27 +6,29 @@
 #include <vector>
 #include <sys/timeb.h>
 
+typedef unsigned int ui;
+
 class Graph {
 private:
 
-    int vertices_count_;
-    int edges_count_;
-    int labels_count_;
-    int max_degree_;
-    int max_label_frequency_;
+    ui vertices_count_;
+    ui edges_count_;
+    ui labels_count_;
+    ui max_degree_;
+    ui max_label_frequency_;
 
-    int* offsets_;
-    int * neighbors_;
-    int* labels_;
-    int* reverse_index_offsets_;
-    int* reverse_index_;
+    ui* offsets_;
+    ui * neighbors_;
+    ui* labels_;
+    ui* reverse_index_offsets_;
+    ui* reverse_index_;
 
-    int* core_table_;
-    int core_length_;
+    ui* core_table_;
+    ui core_length_;
 
-    std::unordered_map<int, int> labels_frequency_;
+    std::unordered_map<ui, ui> labels_frequency_;
 
-    int* labels_offsets_;
+    ui* labels_offsets_;
 
 private:
     void BuildReverseIndex();
@@ -63,72 +65,72 @@ public:
 
 public:
     void loadGraphFromFile(std::string& file_path);
-    void printGraphMetaData();
+    void pruiGraphMetaData();
 
 public:
-    const int getLabelsCount() const {
+    const ui getLabelsCount() const {
         return labels_count_;
     }
 
-    const int getVerticesCount() const {
+    const ui getVerticesCount() const {
         return vertices_count_;
     }
 
-    const int getEdgesCount() const {
+    const ui getEdgesCount() const {
         return edges_count_;
     }
 
-    const int getGraphMaxDegree() const {
+    const ui getGraphMaxDegree() const {
         return max_degree_;
     }
 
-    const int getGraphMaxLabelFrequency() const {
+    const ui getGraphMaxLabelFrequency() const {
         return max_label_frequency_;
     }
 
-    const int getVertexDegree(const int id) const {
+    const ui getVertexDegree(const ui id) const {
         return offsets_[id + 1] - offsets_[id];
     }
 
-    const int getLabelsFrequency(const int label) const {
+    const ui getLabelsFrequency(const ui label) const {
         return labels_frequency_.find(label) == labels_frequency_.end() ? 0 : labels_frequency_.at(label);
     }
 
-    const int getCoreValue(const int id) const {
+    const ui getCoreValue(const ui id) const {
         return core_table_[id];
     }
 
-    const int get2CoreSize() const {
+    const ui get2CoreSize() const {
         return core_length_;
     }
 
-    const int getVertexLabel(const int id) const {
+    const ui getVertexLabel(const ui id) const {
         return labels_[id];
     }
 
-    const int * getVertexNeighbors(const int id, int& count) const {
+    const ui * getVertexNeighbors(const ui id, ui& count) const {
         count = offsets_[id + 1] - offsets_[id];
         return neighbors_ + offsets_[id];
     }
 
-    const int * getVerticesByLabel(const int id, int& count) const {
+    const ui * getVerticesByLabel(const ui id, ui& count) const {
         count = reverse_index_offsets_[id + 1] - reverse_index_offsets_[id];
         return reverse_index_ + reverse_index_offsets_[id];
     }
 
-    const int * getNeighborsByLabel(const int id, const int label, int& count) const {
-        int offset = id * labels_count_ + label;
+    const ui * getNeighborsByLabel(const ui id, const ui label, ui& count) const {
+        ui offset = id * labels_count_ + label;
         count = labels_offsets_[offset + 1] - labels_offsets_[offset];
         return neighbors_ + labels_offsets_[offset];
     }
 
-    bool checkEdgeExistence(const int u, const int v, const int u_label) const {
-        int count = 0;
-        const int* neighbors = getNeighborsByLabel(v, u_label, count);
-        int begin = 0;
-        int end = count - 1;
+    bool checkEdgeExistence(const ui u, const ui v, const ui u_label) const {
+        ui count = 0;
+        const ui* neighbors = getNeighborsByLabel(v, u_label, count);
+        ui begin = 0;
+        ui end = count - 1;
         while (begin <= end) {
-            int mid = begin + ((end - begin) >> 1);
+            ui mid = begin + ((end - begin) >> 1);
             if (neighbors[mid] == u) {
                 return true;
             }
@@ -140,17 +142,17 @@ public:
         return false;
     }
 
-    bool checkEdgeExistence(int u, int v) const {
+    bool checkEdgeExistence(ui u, ui v) const {
         if (getVertexDegree(u) < getVertexDegree(v)) {
             std::swap(u, v);
         }
-        int count = 0;
-        const int* neighbors = getVertexNeighbors(v, count);
+        ui count = 0;
+        const ui* neighbors = getVertexNeighbors(v, count);
 
-        int begin = 0;
-        int end = count - 1;
+        ui begin = 0;
+        ui end = count - 1;
         while (begin <= end) {
-            int mid = begin + ((end - begin) >> 1);
+            ui mid = begin + ((end - begin) >> 1);
             if (neighbors[mid] == u) {
                 return true;
             }
@@ -166,58 +168,58 @@ public:
     void buildCoreTable();
 };
 
-void getKCore(const Graph *graph, int *core_table) {
-    int vertices_count = graph->getVerticesCount();
-    int max_degree = graph->getGraphMaxDegree();
+void getKCore(const Graph *graph, ui *core_table) {
+    ui vertices_count = graph->getVerticesCount();
+    ui max_degree = graph->getGraphMaxDegree();
 
-    int* vertices = new int[vertices_count];          // Vertices sorted by degree.
-    int* position = new int[vertices_count];          // The position of vertices in vertices array.
-    int* degree_bin = new int[max_degree + 1];      // Degree from 0 to max_degree.
-    int* offset = new int[max_degree + 1];          // The offset in vertices array according to degree.
+    ui* vertices = new ui[vertices_count];          // Vertices sorted by degree.
+    ui* position = new ui[vertices_count];          // The position of vertices in vertices array.
+    ui* degree_bin = new ui[max_degree + 1];      // Degree from 0 to max_degree.
+    ui* offset = new ui[max_degree + 1];          // The offset in vertices array according to degree.
 
     std::fill(degree_bin, degree_bin + (max_degree + 1), 0);
 
-    for (int i = 0; i < vertices_count; ++i) {
-        int degree = graph->getVertexDegree(i);
+    for (ui i = 0; i < vertices_count; ++i) {
+        ui degree = graph->getVertexDegree(i);
         core_table[i] = degree;
         degree_bin[degree] += 1;
     }
 
-    int start = 0;
-    for (int i = 0; i < max_degree + 1; ++i) {
+    ui start = 0;
+    for (ui i = 0; i < max_degree + 1; ++i) {
         offset[i] = start;
         start += degree_bin[i];
     }
 
-    for (int i = 0; i < vertices_count; ++i) {
-        int degree = graph->getVertexDegree(i);
+    for (ui i = 0; i < vertices_count; ++i) {
+        ui degree = graph->getVertexDegree(i);
         position[i] = offset[degree];
         vertices[position[i]] = i;
         offset[degree] += 1;
     }
 
-    for (int i = max_degree; i > 0; --i) {
+    for (ui i = max_degree; i > 0; --i) {
         offset[i] = offset[i - 1];
     }
     offset[0] = 0;
 
-    for (int i = 0; i < vertices_count; ++i) {
-        int v = vertices[i];
+    for (ui i = 0; i < vertices_count; ++i) {
+        ui v = vertices[i];
 
-        int count;
-        const int * neighbors = graph->getVertexNeighbors(v, count);
+        ui count;
+        const ui * neighbors = graph->getVertexNeighbors(v, count);
 
-        for(int j = 0; j < count; ++j) {
-            int u = neighbors[j];
+        for(ui j = 0; j < count; ++j) {
+            ui u = neighbors[j];
 
             if (core_table[u] > core_table[v]) {
 
                 // Get the position and vertex which is with the same degree
                 // and at the start position of vertices array.
-                int cur_degree_u = core_table[u];
-                int position_u = position[u];
-                int position_w = offset[cur_degree_u];
-                int w = vertices[position_w];
+                ui cur_degree_u = core_table[u];
+                ui position_u = position[u];
+                ui position_w = offset[cur_degree_u];
+                ui w = vertices[position_w];
 
                 if (u != w) {
                     // Swap u and w.
@@ -240,9 +242,9 @@ void getKCore(const Graph *graph, int *core_table) {
 }
 
 void Graph::buildCoreTable() {
-    core_table_ = new int[vertices_count_];
+    core_table_ = new ui[vertices_count_];
     getKCore(this, core_table_);
-    for (int i = 0; i < vertices_count_; ++i) {
+    for (ui i = 0; i < vertices_count_; ++i) {
         if (core_table_[i] > 1) {
             core_length_ += 1;
         }
@@ -250,64 +252,64 @@ void Graph::buildCoreTable() {
 }
 
 void Graph::BuildReverseIndex() {
-    reverse_index_ = new int[vertices_count_];
-    reverse_index_offsets_= new int[labels_count_ + 1];
+    reverse_index_ = new ui[vertices_count_];
+    reverse_index_offsets_= new ui[labels_count_ + 1];
     reverse_index_offsets_[0] = 0;
 
-    int total = 0;
-    for (int i = 0; i < labels_count_; ++i) {
+    ui total = 0;
+    for (ui i = 0; i < labels_count_; ++i) {
         reverse_index_offsets_[i + 1] = total;
         total += labels_frequency_[i];
     }
 
-    for (int i = 0; i < vertices_count_; ++i) {
-        int label = labels_[i];
+    for (ui i = 0; i < vertices_count_; ++i) {
+        ui label = labels_[i];
         reverse_index_[reverse_index_offsets_[label + 1]++] = i;
     }
 }
 
 void Graph::BuildLabelOffset() {
     size_t labels_offset_size = (size_t)vertices_count_ * labels_count_ + 1;
-    labels_offsets_ = new int[labels_offset_size];
+    labels_offsets_ = new ui[labels_offset_size];
     std::fill(labels_offsets_, labels_offsets_ + labels_offset_size, 0);
 
 
     // sort by label, then by ID
-    for (int i = 0; i < vertices_count_; ++i) {
+    for (ui i = 0; i < vertices_count_; ++i) {
         std::sort(neighbors_ + offsets_[i], neighbors_ + offsets_[i + 1],
-            [this](const int u, const int v) -> bool {
+            [this](const ui u, const ui v) -> bool {
                 return labels_[u] == labels_[v] ? u < v : labels_[u] < labels_[v];
             });
     }
 
-    for (int i = 0; i < vertices_count_; ++i) {
-        int previous_label = 0;
-        int current_label = 0;
+    for (ui i = 0; i < vertices_count_; ++i) {
+        ui previous_label = 0;
+        ui current_label = 0;
 
         labels_offset_size = i * labels_count_;
         labels_offsets_[labels_offset_size] = offsets_[i];
 
-        for (int j = offsets_[i]; j < offsets_[i + 1]; ++j) {
+        for (ui j = offsets_[i]; j < offsets_[i + 1]; ++j) {
             current_label = labels_[neighbors_[j]];
 
             if (current_label != previous_label) {
-                for (int k = previous_label + 1; k <= current_label; ++k) {
+                for (ui k = previous_label + 1; k <= current_label; ++k) {
                     labels_offsets_[labels_offset_size + k] = j;
                 }
                 previous_label = current_label;
             }
         }
 
-        for (int l = current_label + 1; l <= labels_count_; ++l) {
+        for (ui l = current_label + 1; l <= labels_count_; ++l) {
             labels_offsets_[labels_offset_size + l] = offsets_[i + 1];
         }
     }
 }
 
 /**
-std::pair<int,int> graph_shrink(std::string &file_path, std::vector<int> &degrees)
+std::pair<ui,ui> graph_shrink(std::string &file_path, std::vector<ui> &degrees)
 {   
-    int vertices_count, edges_count;
+    ui vertices_count, edges_count;
     std::ifstream infile1(file_path);
     char type;
     infile1 >> type >> vertices_count >> edges_count;
@@ -317,15 +319,15 @@ std::pair<int,int> graph_shrink(std::string &file_path, std::vector<int> &degree
 
     while (infile1 >> type) {
         if(type == 'v') {
-            int id;
-            int label;
-            int degree;
+            ui id;
+            ui label;
+            ui degree;
             infile1 >> id >> label >> degree;
             vertices_count++;
         }
         else if (type == 'e') {  
-            int begin;
-            int end;
+            ui begin;
+            ui end;
             infile1 >> begin >> end;
             if(begin >= 10000 || end >= 10000) continue;
             degrees[begin]++;
@@ -353,22 +355,22 @@ void Graph::loadGraphFromFile(std::string &file_path) {
 
     std::cout << vertices_count_ << " " << edges_count_ << std::endl;
 
-    offsets_ = new int[vertices_count_ +  1];
+    offsets_ = new ui[vertices_count_ +  1];
     offsets_[0] = 0;
 
-    neighbors_ = new int[edges_count_ * 2];
-    labels_ = new int[vertices_count_];
+    neighbors_ = new ui[edges_count_ * 2];
+    labels_ = new ui[vertices_count_];
     labels_count_ = 0;
     max_degree_ = 0;
 
-    int max_label_id = 0;
-    std::vector<int> neighbors_offset(vertices_count_, 0);
+    ui max_label_id = 0;
+    std::vector<ui> neighbors_offset(vertices_count_, 0);
 
     while (infile >> type) {
         if (type == 'v') { // Read vertex.
-            int id;
-            int label;
-            int degree;
+            ui id;
+            ui label;
+            ui degree;
             infile >> id >> label >> degree;
 
             labels_[id] = label;
@@ -387,11 +389,11 @@ void Graph::loadGraphFromFile(std::string &file_path) {
             labels_frequency_[label] += 1;
         }
         else if (type == 'e') { // Read edge.
-            int begin;
-            int end;
+            ui begin;
+            ui end;
             infile >> begin >> end;
 
-            int offset = offsets_[begin] + neighbors_offset[begin];
+            ui offset = offsets_[begin] + neighbors_offset[begin];
             neighbors_[offset] = end;
 
             offset = offsets_[end] + neighbors_offset[end];
@@ -404,7 +406,7 @@ void Graph::loadGraphFromFile(std::string &file_path) {
 
 
     infile.close();
-    labels_count_ = (int)labels_frequency_.size() > (max_label_id + 1) ? (int)labels_frequency_.size() : max_label_id + 1;
+    labels_count_ = (ui)labels_frequency_.size() > (max_label_id + 1) ? (ui)labels_frequency_.size() : max_label_id + 1;
 
     for (auto element: labels_frequency_) {
         if (element.second > max_label_frequency_) {
@@ -412,12 +414,12 @@ void Graph::loadGraphFromFile(std::string &file_path) {
         }
     }
 
-    for (int i = 0; i < vertices_count_; ++i) {
+    for (ui i = 0; i < vertices_count_; ++i) {
         std::sort(neighbors_ + offsets_[i], neighbors_ + offsets_[i + 1]);
     }
 
     
     BuildReverseIndex();
-    
-    BuildLabelOffset();
+
+    // BuildLabelOffset();
 }

@@ -9,15 +9,21 @@
 // #define ENABLE_FAILING_SET
 #define MAXIMUM_QUERY_GRAPH_SIZE 64
 
-#define TIME_THRESHOLD 0.1
+#define TIME_THRESHOLD 10000000
 
 #include "../system/workerOL.h"
 #include "../system/task.h"
+
+#include "intersection/computesetintersection.h"
+// #include "intersection/avx2.hpp"
+// #include "intersection/galloping.hpp"
 
 #include <atomic>
 #include <bitset>
 #include <fstream>
 #include <unordered_map>
+#include <assert.h>
+#include <algorithm>
 
 #include "graph.h"
 #include "FilterVertices.h"
@@ -31,29 +37,33 @@ typedef unsigned long long int ULL;
 
 struct ContextValue
 {   
-    int query_vertices_num;
-    int cur_depth;
-    int valid_candidate_cnt;
-    int valid_candidate_max_cnt;
+    ui query_vertices_num;
+    ui cur_depth;
 
-    int *valid_candidate_idx;
-    int *embedding, *idx_embedding;
-    hash_set<int> visited;
+    // ui valid_candidate_cnt;
+    // ui valid_candidate_max_cnt;
+    // ui *valid_candidate_idx;
+
+    ui *embedding, *idx_embedding;
+    // hash_set<ui> visited;
 
 #ifdef ENABLE_FAILING_SET
     std::vector<std::bitset<MAXIMUM_QUERY_GRAPH_SIZE>> vec_failing_set;
-    std::unordered_map<int, int> reverse_embedding;
+    std::unordered_map<ui, ui> reverse_embedding;
 #endif
 
     ContextValue()
     {
-
+        embedding = NULL;
+        idx_embedding = NULL;
     }
     ~ContextValue()
     {
-        delete[] embedding;
-        delete[] idx_embedding;
-        delete[] valid_candidate_idx;
+        if (embedding != NULL)
+            delete[] embedding;
+        if (idx_embedding != NULL)
+            delete[] idx_embedding;
+        // delete[] valid_candidate_idx;
     }
 };
 
@@ -62,14 +72,14 @@ ofbinstream & operator>>(ofbinstream & m, std::bitset<MAXIMUM_QUERY_GRAPH_SIZE> 
 {
     std::vector<char> buf;
     m >> buf;
-    for (int j=0; j<MAXIMUM_QUERY_GRAPH_SIZE; j++)
+    for (ui j=0; j<MAXIMUM_QUERY_GRAPH_SIZE; j++)
         c[j] = ((buf[j>>3] >> (j & 7)) & 1);
     return m;
 }
 ifbinstream & operator<<(ifbinstream & m, const std::bitset<MAXIMUM_QUERY_GRAPH_SIZE> & c)
 {
     std::vector<char> buf((MAXIMUM_QUERY_GRAPH_SIZE + 7) >> 3);
-    for (int j=0; j<MAXIMUM_QUERY_GRAPH_SIZE; j++)
+    for (ui j=0; j<MAXIMUM_QUERY_GRAPH_SIZE; j++)
         buf[j>>3] |= (c[j] << (j & 7));
     m << buf;
     return m;
@@ -79,26 +89,26 @@ ifbinstream & operator<<(ifbinstream & m, const std::bitset<MAXIMUM_QUERY_GRAPH_
 ofbinstream & operator>>(ofbinstream & m, ContextValue & c)
 {
     m >> c.cur_depth;
-    m >> c.valid_candidate_max_cnt;
-    c.valid_candidate_idx = new int[c.valid_candidate_max_cnt];
-    c.valid_candidate_cnt = 0;
-    m >> c.query_vertices_num;
+    // m >> c.valid_candidate_max_cnt;
+    // c.valid_candidate_idx = new ui[c.valid_candidate_max_cnt];
+    // c.valid_candidate_cnt = 0;
 
-    c.embedding = new int[c.query_vertices_num];
-    for(int i = 0; i < c.query_vertices_num; i++)
+    m >> c.query_vertices_num;
+    c.embedding = new ui[c.query_vertices_num];
+    for(ui i = 0; i < c.query_vertices_num; i++)
 		m >> c.embedding[i];
-    c.idx_embedding = new int[c.query_vertices_num];
-    for(int i = 0; i < c.query_vertices_num; i++)
+    c.idx_embedding = new ui[c.query_vertices_num];
+    for(ui i = 0; i < c.query_vertices_num; i++)
         m >> c.idx_embedding[i];
 
-    m >> c.visited;
+    // m >> c.visited;
 
 #ifdef ENABLE_FAILING_SET
     // m >> c.vec_failing_set;
     size_t size;
     m >> size;
     for (size_t i = 0; i < size; i++) {
-        int key;
+        ui key;
         m >> key;
         m >> c.reverse_embedding[key];
     }
@@ -107,16 +117,17 @@ ofbinstream & operator>>(ofbinstream & m, ContextValue & c)
 }
 ifbinstream & operator<<(ifbinstream & m, const ContextValue & c) 
 {
+
     m << c.cur_depth;
-    m << c.valid_candidate_max_cnt;
+    // m << c.valid_candidate_max_cnt;
     m << c.query_vertices_num;
 
-    for(int i = 0; i < c.query_vertices_num; i++) 
+    for(ui i = 0; i < c.query_vertices_num; i++) 
         m << c.embedding[i];
-    for(int i = 0; i < c.query_vertices_num; i++) 
+    for(ui i = 0; i < c.query_vertices_num; i++) 
         m << c.idx_embedding[i];
     
-    m << c.visited;
+    // m << c.visited;
     
 #ifdef ENABLE_FAILING_SET
     // m << c.vec_failing_set;
@@ -140,21 +151,23 @@ struct GMQuery
 
     struct timeb start_t, end_t;
 
-    int **candidates;
-    int *candidates_count;
-    int *bfs_order, *matching_order, *pivot;
+    ui **candidates;
+    ui *candidates_count;
+    ui *bfs_order, *matching_order, *pivot;
     TreeNode *tree;
 
     Edges ***edge_matrix;
 
-    int **bn;
-    int *bn_count;
+    ui **bn;
+    ui *bn_count;
+
+    ui max_candidate_cnt;
 
 #ifdef ENABLE_FAILING_SET
     std::vector<std::bitset<MAXIMUM_QUERY_GRAPH_SIZE>> ancestors;
 #endif
 
-    int cur_stage_num;
+    ui cur_stage_num;
 
     // =======================================
 
@@ -162,14 +175,17 @@ struct GMQuery
     {
         cur_stage_num = STAGE_1;
         counters.assign(32, 0);
+
+        max_candidate_cnt = 0;
+
     }
 
     ~GMQuery()
     {
-        for(int i=0; i<query_graph.getVerticesCount(); ++i) {
+        for(ui i=0; i<query_graph.getVerticesCount(); ++i) {
             delete[] bn[i]; 
             delete[] candidates[i];
-            for (int j=0; j<query_graph.getVerticesCount(); ++j) {
+            for (ui j=0; j<query_graph.getVerticesCount(); ++j) {
                 delete edge_matrix[i][j];
             }
             delete[] edge_matrix[i];
@@ -194,45 +210,54 @@ public:
 
     ULL counter;
 
+    ui *temp_buffer;
+    bool *visited_arr;
+    ui *idx;
+    ui *idx_count;
+    ui **valid_candidate_idx;
+
+
+    GMComper(): temp_buffer(NULL), visited_arr(NULL), idx(NULL), idx_count(NULL), valid_candidate_idx(NULL) {}
+
 
 #ifdef ENABLE_FAILING_SET
-    void computeAncestor(Graph &query_graph, int **bn, int *bn_cnt, int *order,
+    void computeAncestor(Graph &query_graph, ui **bn, ui *bn_cnt, ui *order,
                         std::vector<std::bitset<MAXIMUM_QUERY_GRAPH_SIZE>> &ancestors) 
     {
-        int query_vertices_num = query_graph.getVerticesCount();
+        ui query_vertices_num = query_graph.getVerticesCount();
         ancestors.resize(query_vertices_num);
 
         // Compute the ancestor in the top-down order.
-        for (int i = 0; i < query_vertices_num; ++i) {
-            int u = order[i];
+        for (ui i = 0; i < query_vertices_num; ++i) {
+            ui u = order[i];
             ancestors[u].set(u);
-            for (int j = 0; j < bn_cnt[i]; ++j) {
-                int u_bn = bn[i][j];
+            for (ui j = 0; j < bn_cnt[i]; ++j) {
+                ui u_bn = bn[i][j];
                 ancestors[u] |= ancestors[u_bn];
             }
         }
     }
 #endif
 
-    void generateBN(Graph &query_graph, int *order, int **&bn, int *&bn_count) 
+    void generateBN(Graph &query_graph, ui *order, ui **&bn, ui *&bn_count) 
     {
-        int query_vertices_num = query_graph.getVerticesCount();
-        bn_count = new int[query_vertices_num];
+        ui query_vertices_num = query_graph.getVerticesCount();
+        bn_count = new ui[query_vertices_num];
         std::fill(bn_count, bn_count + query_vertices_num, 0);
-        bn = new int *[query_vertices_num];
-        for (int i = 0; i < query_vertices_num; ++i) {
-            bn[i] = new int[query_vertices_num];
+        bn = new ui *[query_vertices_num];
+        for (ui i = 0; i < query_vertices_num; ++i) {
+            bn[i] = new ui[query_vertices_num];
         }
 
         std::vector<bool> visited_vertices(query_vertices_num, false);
         visited_vertices[order[0]] = true;
-        for (int i = 1; i < query_vertices_num; ++i) {
-            int vertex = order[i];
+        for (ui i = 1; i < query_vertices_num; ++i) {
+            ui vertex = order[i];
 
-            int nbrs_cnt;
-            const int *nbrs = query_graph.getVertexNeighbors(vertex, nbrs_cnt);
-            for (int j = 0; j < nbrs_cnt; ++j) {
-                int nbr = nbrs[j];
+            ui nbrs_cnt;
+            const ui *nbrs = query_graph.getVertexNeighbors(vertex, nbrs_cnt);
+            for (ui j = 0; j < nbrs_cnt; ++j) {
+                ui nbr = nbrs[j];
 
                 if (visited_vertices[nbr]) {
                     bn[i][bn_count[i]++] = nbr;
@@ -240,251 +265,335 @@ public:
             }
             visited_vertices[vertex] = true;
         }
+
+        cout << "======= BN ========" << endl;
+        for (int i = 1; i < query_vertices_num; ++i)
+        {
+            for (int j = 0; j < bn_count[i]; ++j)
+            {
+                cout << bn[i][j] << " ";
+            }
+            cout << endl;
+        }
+        cout << "==================" << endl;
     }
 
-    void generateValidCandidateIndex(int u, int *idx_embedding, int &valid_candidate_cnt, int *valid_candidate_index,
-                                    Edges ***edge_matrix, int *bn, int bn_cnt)
+
+    void generateValidCandidateIndex(ui depth, ui *idx_embedding, ui &valid_candidate_cnt, ui *valid_candidate_index,
+                                    Edges ***edge_matrix, ui **bn, ui *bn_cnt, ui *order, ui *temp_buffer_)
     {
-        if(bn_cnt == 1) {
-            int current_bn = bn[0];
-            Edges &current_edge = *edge_matrix[current_bn][u];
-            int current_index_id = idx_embedding[current_bn];
+        
+        ui u = order[depth];
+        ui previous_bn = bn[depth][0];
+        ui previous_index_id = idx_embedding[previous_bn];
 
-            int current_candidates_count =
-                current_edge.offset_[current_index_id + 1] - current_edge.offset_[current_index_id];
-            int *current_candidates = current_edge.edge_ + current_edge.offset_[current_index_id];
-            valid_candidate_cnt = current_candidates_count;
-            for(int i=0; i<current_candidates_count; i++) {
-                valid_candidate_index[i] = current_candidates[i];
+        ui valid_candidate_count = 0;
+
+        Edges& previous_edge = *edge_matrix[previous_bn][u];
+
+        valid_candidate_count = previous_edge.offset_[previous_index_id + 1] - previous_edge.offset_[previous_index_id];
+        ui* previous_candidates = previous_edge.edge_ + previous_edge.offset_[previous_index_id];
+
+        memcpy(valid_candidate_index, previous_candidates, valid_candidate_count * sizeof(ui));
+        
+        ui temp_count;
+        for (ui i = 1; i < bn_cnt[depth]; ++i) {
+            
+            VertexID current_bn = bn[depth][i];
+
+            Edges& current_edge = *edge_matrix[current_bn][u];
+            ui current_index_id = idx_embedding[current_bn];
+
+
+            ui current_candidates_count = current_edge.offset_[current_index_id + 1] - current_edge.offset_[current_index_id];
+
+            ui* current_candidates = current_edge.edge_ + current_edge.offset_[current_index_id];
+
+
+            if (current_candidates_count < valid_candidate_cnt)
+                ComputeSetIntersection::ComputeCandidates(current_candidates, current_candidates_count, valid_candidate_index, valid_candidate_count,
+                            temp_buffer_, temp_count);
+            else
+                ComputeSetIntersection::ComputeCandidates(valid_candidate_index, valid_candidate_count, current_candidates, current_candidates_count,
+                            temp_buffer_, temp_count);
+
+            for(int i = 0; i < temp_count; ++i)
+            {
+                valid_candidate_index[i] = temp_buffer_[i];
             }
+            valid_candidate_count = temp_count;
         }
-        else {
-            vector<vector<int> > vecs;
 
-            // vector<int> res;
-
-            for(int i=0; i<bn_cnt; i++) {
-                int current_bn = bn[i];
-
-                Edges &current_edge = *edge_matrix[current_bn][u];
-                int current_index_id = idx_embedding[current_bn];
-
-                int current_candidates_count =
-                    current_edge.offset_[current_index_id + 1] - current_edge.offset_[current_index_id];
-                int *current_candidates = current_edge.edge_ + current_edge.offset_[current_index_id];
-
-                vector<int> vec(current_candidates, current_candidates+current_candidates_count);
-
-                vecs.push_back(vec);
-                // if(i == 0)
-                // {
-                //     res.insert(res.begin(), vec.begin(), vec.end());
-                // }
-                // else
-                // {
-                //     vector<int> new_res;
-                //     std::set_intersection(res.begin(), res.end(),
-                //             vec.begin(), vec.end(),
-                //             back_inserter(new_res));
-                //     res.swap(new_res);
-                // }
-            }
-            auto intersection = leapfrogJoin(vecs);
-
-            valid_candidate_cnt = intersection.size();
-            for(int i=0; i<valid_candidate_cnt; i++) {
-                valid_candidate_index[i] = intersection[i];
-            }
-
-            // valid_candidate_cnt = res.size();
-            // for(int i=0; i<valid_candidate_cnt; i++) {
-            //     valid_candidate_index[i] = res[i];
-            // }
-        }
+        valid_candidate_cnt = valid_candidate_count;
     }
 
-    void generateValidCandidateIndex(int cur_depth, int *idx_embedding, int *idx_count, int **valid_candidate_idx,
-                                    Edges ***edge_matrix, int *bn, int bn_cnt, int *order)
-    {   
-        int u = order[cur_depth];
-        if(bn_cnt == 1) {
-            int current_bn = bn[0];
-            Edges &current_edge = *edge_matrix[current_bn][u];
-            int current_index_id = idx_embedding[current_bn];
 
-            int current_candidates_count =
-                current_edge.offset_[current_index_id + 1] - current_edge.offset_[current_index_id];
-            int *current_candidates = current_edge.edge_ + current_edge.offset_[current_index_id];
-            idx_count[cur_depth] = current_candidates_count;
-            for(int i=0; i<current_candidates_count; i++) {
-                valid_candidate_idx[cur_depth][i] = current_candidates[i];
+    void generateValidCandidateIndex(ui depth, ui *idx_embedding, ui *idx_count, ui **valid_candidate_index,
+                                    Edges ***edge_matrix, ui **bn, ui *bn_cnt, ui *order, ui *temp_buffer_)
+    {   
+
+        ui u = order[depth];
+        ui previous_bn = bn[depth][0];
+        ui previous_index_id = idx_embedding[previous_bn];
+        ui valid_candidates_count = 0;
+
+
+        Edges& previous_edge = *edge_matrix[previous_bn][u];
+
+        valid_candidates_count = previous_edge.offset_[previous_index_id + 1] - previous_edge.offset_[previous_index_id];
+        ui* previous_candidates = previous_edge.edge_ + previous_edge.offset_[previous_index_id];
+
+        memcpy(valid_candidate_index[depth], previous_candidates, valid_candidates_count * sizeof(ui));
+
+        
+        ui temp_count;
+        for (ui i = 1; i < bn_cnt[depth]; ++i) {
+            
+            VertexID current_bn = bn[depth][i];
+
+            Edges& current_edge = *edge_matrix[current_bn][u];
+            ui current_index_id = idx_embedding[current_bn];
+
+
+            ui current_candidates_count = current_edge.offset_[current_index_id + 1] - current_edge.offset_[current_index_id];
+
+            ui* current_candidates = current_edge.edge_ + current_edge.offset_[current_index_id];
+
+
+            if (current_candidates_count < valid_candidates_count)
+                ComputeSetIntersection::ComputeCandidates(current_candidates, current_candidates_count, valid_candidate_index[depth], valid_candidates_count,
+                            temp_buffer_, temp_count);
+            else
+                ComputeSetIntersection::ComputeCandidates(valid_candidate_index[depth], valid_candidates_count, current_candidates, current_candidates_count,
+                            temp_buffer_, temp_count);
+          
+
+            // std::swap(temp_buffer, valid_candidate_index[depth]); // all elements are swapped
+
+            for(int i = 0; i < temp_count; ++i)
+            {
+                valid_candidate_index[depth][i] = temp_buffer_[i];
+            }
+            valid_candidates_count = temp_count;
+        }
+
+        idx_count[depth] = valid_candidates_count;
+    }
+
+    double countElaspedTime()
+    {
+        struct timeb cur_time;
+        ftime(&cur_time);
+        return cur_time.time-data_graph.gtime_start[thread_id].time+(double)(cur_time.millitm-data_graph.gtime_start[thread_id].millitm)/1000;
+    }
+
+
+    void LFTJ(int enter_depth, Graph &query_graph, Edges ***edge_matrix, ui **candidates,
+                ui *candidates_count, ui *order, ui *embedding, ui *idx_embedding,
+                ui **bn, ui *bn_count, GMQuery &q)
+
+    {
+        // ui *idx = new ui[query_graph.getVerticesCount()];
+        // ui *idx_count = new ui[query_graph.getVerticesCount()];
+        // ui *embedding = new ui[query_graph.getVerticesCount()];
+        // ui *idx_embedding = new ui[query_graph.getVerticesCount()];
+
+        // ui max_candidates_num = candidates_count[0];
+
+        // for (ui i = 1; i < query_graph.getVerticesCount(); ++i) {
+        //     ui cur_vertex = i;
+        //     ui cur_candidate_num = candidates_count[cur_vertex];
+
+        //     if (cur_candidate_num > max_candidates_num) {
+        //         max_candidates_num = cur_candidate_num;
+        //     }
+        // }
+
+        // ui *temp_buffer = new ui[max_candidates_num];
+
+        // ui *valid_candidate_idx[query_graph.getVerticesCount()];
+        // for (ui i = 0; i < query_graph.getVerticesCount(); ++i) {
+        //     valid_candidate_idx[i] = new ui[max_candidates_num];
+        // }
+
+        //=============================================
+
+        int cur_depth = enter_depth;
+        int max_depth = query_graph.getVerticesCount();
+
+        if (cur_depth == 0)
+        {
+
+            ui start_vertex = order[0];
+
+            idx[cur_depth] = 0;
+
+            idx_count[cur_depth] = candidates_count[start_vertex];
+
+            for (ui i = 0; i < idx_count[cur_depth]; ++i) {
+                valid_candidate_idx[cur_depth][i] = i;
             }
         }
         else
-        {
-            vector<int> res;
-
-            for(int i=0; i<bn_cnt; i++) {
-                int current_bn = bn[i];
-
-                Edges &current_edge = *edge_matrix[current_bn][u];
-                int current_index_id = idx_embedding[current_bn];
-
-                int current_candidates_count =
-                    current_edge.offset_[current_index_id + 1] - current_edge.offset_[current_index_id];
-                int *current_candidates = current_edge.edge_ + current_edge.offset_[current_index_id];
-
-                vector<int> vec;
-                vec.insert(vec.begin(), current_candidates, current_candidates+current_candidates_count);
-
-                // vecs.push_back(vec);
-                if(i == 0)
-                {
-                    res.insert(res.begin(), vec.begin(), vec.end());
-                }
-                else
-                {
-                    vector<int> new_res;
-                    std::sort(res.begin(), res.end());
-                    std::sort(vec.begin(), vec.end());
-                    std::set_intersection(res.begin(), res.end(),
-                            vec.begin(), vec.end(),
-                            back_inserter(new_res));
-                    res.swap(new_res);
-                }
+        {  
+            idx[cur_depth] = 0;
+        
+            // compute set intersection
+            generateValidCandidateIndex(cur_depth, idx_embedding, idx_count, valid_candidate_idx, edge_matrix, bn, bn_count, order, temp_buffer);
+  
+            
+            // initialize visited_arr array 
+            for (ui i = 0; i < enter_depth; ++i)
+            {
+                visited_arr[embedding[order[i]]] = true;
             }
-            // auto intersection = leapfrogJoin(vecs);
-
-            // valid_candidate_cnt = intersection.size();
-            // for(int i=0; i<valid_candidate_cnt; i++) {
-            //     valid_candidate_index[i] = intersection[i];
-            // }
-
-            idx_count[cur_depth] = res.size();
-            for(int i=0; i<idx_count[cur_depth]; i++) {
-                valid_candidate_idx[cur_depth][i] = res[i];
-            }
-        }
-    }
-
-
-    void LFTJ(Graph &query_graph, Edges ***edge_matrix, int **candidates,
-                int *candidates_count, int *order, int *embedding, int *idx_embedding,
-                int **bn, int *bn_count, GMQuery &q)
-
-    {
-        int *idx = new int[query_graph.getVerticesCount()];
-        int *idx_count = new int[query_graph.getVerticesCount()];
-
-        bool *visited_vertices = new bool[data_graph.getVerticesCount()];
-        std::fill(visited_vertices, visited_vertices + data_graph.getVerticesCount(), false);
-
-        int max_candidates_num = candidates_count[0];
-
-        for (int i = 1; i < query_graph.getVerticesCount(); ++i) {
-            int cur_vertex = i;
-            int cur_candidate_num = candidates_count[cur_vertex];
-
-            if (cur_candidate_num > max_candidates_num) {
-                max_candidates_num = cur_candidate_num;
-            }
-        }
-
-        int **valid_candidate_idx = new int *[query_graph.getVerticesCount()];
-        for (int i = 0; i < query_graph.getVerticesCount(); ++i) {
-            valid_candidate_idx[i] = new int[max_candidates_num];
-        }
-
-        int cur_depth = 0;
-        int max_depth = query_graph.getVerticesCount();
-        int start_vertex = order[0];
-
-        idx[cur_depth] = 0;
-        idx_count[cur_depth] = candidates_count[start_vertex];
-
-        for (int i = 0; i < idx_count[cur_depth]; ++i) {
-            valid_candidate_idx[cur_depth][i] = i;
         }
 
         while (true) {
             while (idx[cur_depth] < idx_count[cur_depth]) {
-                int valid_idx = valid_candidate_idx[cur_depth][idx[cur_depth]];
-                int u = order[cur_depth];
-                int v = candidates[u][valid_idx];
+                ui valid_idx = valid_candidate_idx[cur_depth][idx[cur_depth]];
+
+                ui u = order[cur_depth];
+                
+                ui v = candidates[u][valid_idx];
+
+
+                if (visited_arr[v]) {
+                    idx[cur_depth] += 1;
+                    continue;
+                }
 
                 embedding[u] = v;
                 idx_embedding[u] = valid_idx;
-                visited_vertices[v] = true;
+
+                visited_arr[v] = true;
+
                 idx[cur_depth] += 1;
 
                 if (cur_depth == max_depth - 1) {
-                    counter ++;
-                    visited_vertices[v] = false;
+                        
+                    counter += 1;
 
-                    if(counter % 100000000 == 0) cout<<counter<<endl;
-                
-                } else {
+                    // print first 10000 results
+                    if (counter < 10000)
+                    {
+                        for(ui i = 0; i < max_depth; ++i)
+                        {
+                            cout << embedding[i] << " ";
+                        }
+                        cout << endl;
+                    }
+
+                    visited_arr[v] = false;
+                    
+                    if(counter % 1000000000 == 0) cout<<counter<<endl;
+                    
+                    continue;
+                }
+
+                // if not timeout, continue search 
+                if(countElaspedTime() < TIME_THRESHOLD) 
+                {
                     cur_depth += 1;
                     idx[cur_depth] = 0;
-                    generateValidCandidateIndex(cur_depth, idx_embedding, idx_count, valid_candidate_idx, edge_matrix, bn[cur_depth], bn_count[cur_depth], order);
+                    generateValidCandidateIndex(cur_depth, idx_embedding, idx_count, valid_candidate_idx, edge_matrix, bn, bn_count, order, temp_buffer);
                 }
+                else  // if timeout, start task splitting
+                {
+                    ui query_vertices_num = query_graph.getVerticesCount();
+                    GMTask *t = new GMTask();
+
+                    t->context.query_vertices_num = query_vertices_num;
+                    t->context.cur_depth = cur_depth+1;
+
+                    t->context.embedding = new ui[query_vertices_num];
+                    memcpy(t->context.embedding, embedding, sizeof(ui)*query_vertices_num);
+                    t->context.idx_embedding = new ui[query_vertices_num];
+                    memcpy(t->context.idx_embedding, idx_embedding, sizeof(ui)*query_vertices_num);
+                      
+                    add_task(t);
+
+                    visited_arr[v] = false;
+                }
+
             }
             cur_depth -= 1;
-            if (cur_depth < 0)
+            if (cur_depth < enter_depth)
                 break;
             else
-                visited_vertices[embedding[order[cur_depth]]] = false;
+            {
+                visited_arr[embedding[order[cur_depth]]] = false;
+            }
+        }
+
+        // ####
+        for (ui i = 0; i < enter_depth; ++i)
+        {
+            visited_arr[embedding[order[i]]] = false;
         }
     }
 
-    void backtrack(int cur_depth, Graph &query_graph, int **candidates, int *candidates_count,
-                    Edges ***edge_matrix, int *order, int valid_candidate_cnt, 
-                    int *valid_candidate_idx, int *embedding, int *idx_embedding, hash_set<int> &visited, 
-                    int **bn, int *bn_count, FILE *gfpout, GMQuery &q)
+/**
+    void backtrack(ui cur_depth, Graph &query_graph, ui **candidates, ui *candidates_count,
+                    Edges ***edge_matrix, ui *order, ui valid_candidate_cnt, 
+                    ui *valid_candidate_idx, ui *embedding, ui *idx_embedding, hash_set<ui> &visited, 
+                    ui **bn, ui *bn_count, FILE *gfpout, GMQuery &q)
     {   
         struct timeb cur_time;
 		double drun_time;
 
         if(cur_depth == query_graph.getVerticesCount()) {
-            for(int i=0; i<cur_depth; i++)
-                fprintf(gfpout, "%d ", embedding[i]);
-            fprintf(gfpout, "\n");
+            // for(ui i=0; i<cur_depth; i++)
+            //     fpruif(gfpout, "%d ", embedding[i]);
+            // fpruif(gfpout, "\n");
 
             counter++;
             
-            // if(counter == 100000) {
-            //     ftime(&q.end_t);
-            //     double totaltime = q.end_t.time-q.start_t.time+(double)(q.end_t.millitm-q.start_t.millitm)/1000;
-            //     cout<<"Query "<<get_queryID()<<" first 10^5 total time: "<<totaltime<<endl;
-            // }
+            if(counter % 1000000000 == 0) {
+                ftime(&q.end_t);
+                double totaltime = q.end_t.time-q.start_t.time+(double)(q.end_t.millitm-q.start_t.millitm)/1000;
+                cout<<"temp time: "<<totaltime<<endl;
+            }
 
         } else {
-            int u = order[cur_depth];
+            ui u = order[cur_depth];
             if(cur_depth == 0) {
                 valid_candidate_cnt = candidates_count[u];
-                for (int i = 0; i < valid_candidate_cnt; ++i) {
+                for (ui i = 0; i < valid_candidate_cnt; ++i) {
                     valid_candidate_idx[i] = i;
                 }
             } else {
-                generateValidCandidateIndex(u, idx_embedding, valid_candidate_cnt, valid_candidate_idx,
-                                            edge_matrix, bn[cur_depth], bn_count[cur_depth]);
+                generateValidCandidateIndex(cur_depth, idx_embedding, valid_candidate_cnt, valid_candidate_idx, edge_matrix, 
+                                            bn, bn_count, order, temp_buffer);
             }
 
-            for(int i=0; i<valid_candidate_cnt; i++) {
-                int valid_idx = valid_candidate_idx[i];
-                int v = candidates[u][valid_idx];
-                if(visited.find(v) != visited.end()) {
-                    continue;
-                }
+
+            for(ui i=0; i<valid_candidate_cnt; i++) {
+
+                ui valid_idx = valid_candidate_idx[i];
+                ui v = candidates[u][valid_idx];
+                // if(visited.find(v) != visited.end()) {
+                //     continue;
+                // }
+
+                if (visited_arr[v]) continue;
+
+               
                 embedding[u] = v;
+
                 idx_embedding[u] = valid_idx;
-                visited.insert(v);
 
-                int next_valid_candidate_cnt = 0;
+                // visited.insert(v);
+                visited_arr[v] = true;
 
-                int *next_valid_candidate_idx = NULL;
+                ui next_valid_candidate_cnt = 0;
+
+                ui *next_valid_candidate_idx = NULL;
+                
                 if(cur_depth+1 < query_graph.getVerticesCount())
-                    next_valid_candidate_idx = new int[candidates_count[order[cur_depth+1]]];
+                {
+                    next_valid_candidate_idx = new ui[candidates_count[order[cur_depth+1]]];
+                }
 
                 ftime(&cur_time);
                 drun_time = cur_time.time-data_graph.gtime_start[thread_id].time+(double)(cur_time.millitm-data_graph.gtime_start[thread_id].millitm)/1000;
@@ -495,40 +604,43 @@ public:
                             embedding, idx_embedding, visited, bn, bn_count, gfpout, q);
                 }
                 else {
-                    int query_vertices_num = query_graph.getVerticesCount();
+                    ui query_vertices_num = query_graph.getVerticesCount();
                     GMTask *t = new GMTask();
                     t->context.cur_depth = cur_depth+1;
                     t->context.query_vertices_num = query_vertices_num;
 
-                    t->context.embedding = new int[query_vertices_num];
-                    memcpy(t->context.embedding, embedding, sizeof(int)*query_vertices_num);
-                    t->context.idx_embedding = new int[query_vertices_num];
-                    memcpy(t->context.idx_embedding, idx_embedding, sizeof(int)*query_vertices_num);
+                    t->context.embedding = new ui[query_vertices_num];
+                    memcpy(t->context.embedding, embedding, sizeof(ui)*query_vertices_num);
+                    t->context.idx_embedding = new ui[query_vertices_num];
+                    memcpy(t->context.idx_embedding, idx_embedding, sizeof(ui)*query_vertices_num);
                     t->context.visited = visited;
 
                     t->context.valid_candidate_cnt = 0;
                     t->context.valid_candidate_max_cnt = 0;
                     t->context.valid_candidate_idx = NULL;
                     if(cur_depth+1 < query_vertices_num) {
-                        t->context.valid_candidate_idx = new int[candidates_count[order[cur_depth+1]]];
+                        t->context.valid_candidate_idx = new ui[candidates_count[order[cur_depth+1]]];
                         t->context.valid_candidate_max_cnt = candidates_count[order[cur_depth+1]];
                     }
                     add_task(t);
                 }
 
-                visited.erase(v);
+                // visited.erase(v);
+                visited_arr[v] = false;
                 if(next_valid_candidate_idx != NULL)
                     delete []next_valid_candidate_idx;
             }
         }
     }
 
+**/
+
 #ifdef ENABLE_FAILING_SET
-    void backtrack_fs(int cur_depth, Graph &query_graph, int **candidates, int *candidates_count,
-                    Edges ***edge_matrix, int *order, int valid_candidate_cnt, 
-                    int *valid_candidate_idx, int *embedding, int *idx_embedding, hash_set<int> &visited, 
-                    int **bn, int *bn_count, std::vector<std::bitset<MAXIMUM_QUERY_GRAPH_SIZE>> &vec_failing_set, 
-                    std::unordered_map<int, int> &reverse_embedding, 
+    void backtrack_fs(ui cur_depth, Graph &query_graph, ui **candidates, ui *candidates_count,
+                    Edges ***edge_matrix, ui *order, ui valid_candidate_cnt, 
+                    ui *valid_candidate_idx, ui *embedding, ui *idx_embedding, hash_set<ui> &visited, 
+                    ui **bn, ui *bn_count, std::vector<std::bitset<MAXIMUM_QUERY_GRAPH_SIZE>> &vec_failing_set, 
+                    std::unordered_map<ui, ui> &reverse_embedding, 
                     std::vector<std::bitset<MAXIMUM_QUERY_GRAPH_SIZE>> &ancestors, FILE *gfpout, GMQuery &q,
                     bool &enter_split_phase)
     {   
@@ -536,9 +648,9 @@ public:
 		double drun_time;
 
         if(cur_depth == query_graph.getVerticesCount()) {
-            // for(int i=0; i<cur_depth; i++)
-            //     fprintf(gfpout, "%d ", embedding[i]);
-            // fprintf(gfpout, "\n");
+            // for(ui i=0; i<cur_depth; i++)
+            //     fpruif(gfpout, "%d ", embedding[i]);
+            // fpruif(gfpout, "\n");
             counter++;
             if(counter == 100000) {
                 ftime(&q.end_t);
@@ -549,10 +661,10 @@ public:
             vec_failing_set[cur_depth - 1].set();
             vec_failing_set[cur_depth - 2] |= vec_failing_set[cur_depth - 1];
         } else {
-            int u = order[cur_depth];
+            ui u = order[cur_depth];
             if(cur_depth == 0) {
                 valid_candidate_cnt = candidates_count[u];
-                for (int i = 0; i < valid_candidate_cnt; ++i) {
+                for (ui i = 0; i < valid_candidate_cnt; ++i) {
                     valid_candidate_idx[i] = i;
                 }
             } else {
@@ -568,9 +680,9 @@ public:
                 }
             }
 
-            for(int i=0; i<valid_candidate_cnt; i++) {
-                int valid_idx = valid_candidate_idx[i];
-                int v = candidates[u][valid_idx];
+            for(ui i=0; i<valid_candidate_cnt; i++) {
+                ui valid_idx = valid_candidate_idx[i];
+                ui v = candidates[u][valid_idx];
                 if(visited.find(v) != visited.end()) {
                     vec_failing_set[cur_depth] = ancestors[u];
                     vec_failing_set[cur_depth] |= ancestors[reverse_embedding[v]];
@@ -582,10 +694,10 @@ public:
                 idx_embedding[u] = valid_idx;
                 visited.insert(v);
 
-                int next_valid_candidate_cnt = 0;
-                int *next_valid_candidate_idx = NULL;
+                ui next_valid_candidate_cnt = 0;
+                ui *next_valid_candidate_idx = NULL;
                 if(cur_depth+1 < query_graph.getVerticesCount())
-                    next_valid_candidate_idx = new int[candidates_count[order[cur_depth+1]]];
+                    next_valid_candidate_idx = new ui[candidates_count[order[cur_depth+1]]];
 
                 ftime(&cur_time);
                 drun_time = cur_time.time-data_graph.gtime_start[thread_id].time+(double)(cur_time.millitm-data_graph.gtime_start[thread_id].millitm)/1000;
@@ -596,22 +708,22 @@ public:
                         reverse_embedding, ancestors, gfpout, q, enter_split_phase);
                 } else {
                     enter_split_phase = true;
-                    int query_vertices_num = query_graph.getVerticesCount();
+                    ui query_vertices_num = query_graph.getVerticesCount();
                     GMTask *t = new GMTask();
                     t->context.cur_depth = cur_depth+1;
                     t->context.query_vertices_num = query_vertices_num;
 
-                    t->context.embedding = new int[query_vertices_num];
-                    memcpy(t->context.embedding, embedding, sizeof(int)*query_vertices_num);
-                    t->context.idx_embedding = new int[query_vertices_num];
-                    memcpy(t->context.idx_embedding, idx_embedding, sizeof(int)*query_vertices_num);
+                    t->context.embedding = new ui[query_vertices_num];
+                    memcpy(t->context.embedding, embedding, sizeof(ui)*query_vertices_num);
+                    t->context.idx_embedding = new ui[query_vertices_num];
+                    memcpy(t->context.idx_embedding, idx_embedding, sizeof(ui)*query_vertices_num);
                     t->context.visited = visited;
 
                     t->context.valid_candidate_cnt = 0;
                     t->context.valid_candidate_max_cnt = 0;
                     t->context.valid_candidate_idx = NULL;
                     if(cur_depth+1 < query_vertices_num) {
-                        t->context.valid_candidate_idx = new int[candidates_count[order[cur_depth+1]]];
+                        t->context.valid_candidate_idx = new ui[candidates_count[order[cur_depth+1]]];
                         t->context.valid_candidate_max_cnt = candidates_count[order[cur_depth+1]];
                     }
                     t->context.reverse_embedding = reverse_embedding;
@@ -660,12 +772,12 @@ public:
         } else if(q.cur_stage_num == MAX_STAGE_NUM) {
             GMTask *t = new GMTask();
             t->context.cur_depth = 0;
-            t->context.valid_candidate_cnt = 0;
-            t->context.valid_candidate_max_cnt = q.candidates_count[q.matching_order[0]];
+            // t->context.valid_candidate_cnt = 0;
+            // t->context.valid_candidate_max_cnt = q.candidates_count[q.matching_order[0]];
             t->context.query_vertices_num = q.query_graph.getVerticesCount();
-            t->context.valid_candidate_idx = new int[t->context.valid_candidate_max_cnt];
-            t->context.embedding = new int[q.query_graph.getVerticesCount()];
-            t->context.idx_embedding = new int[q.query_graph.getVerticesCount()];
+            // t->context.valid_candidate_idx = new ui[t->context.valid_candidate_max_cnt];
+            t->context.embedding = new ui[q.query_graph.getVerticesCount()];
+            t->context.idx_embedding = new ui[q.query_graph.getVerticesCount()];
             
 #ifdef ENABLE_FAILING_SET
             t->context.vec_failing_set.resize(q.query_graph.getVerticesCount());
@@ -678,16 +790,29 @@ public:
 
     virtual void compute(ContextT &context, GMQuery &q)
     {   
-        if(q.cur_stage_num == STAGE_1) {
-            FilterVertices::DPisoFilter(data_graph, q.query_graph, q.candidates, q.candidates_count, 
-                                        q.bfs_order, q.tree);
+        if(q.cur_stage_num == STAGE_1) 
+        {
 
-        } else if(q.cur_stage_num == STAGE_2) {
+            FilterVertices::DPisoFilter(data_graph, q.query_graph, q.candidates, q.candidates_count, 
+                                        q.bfs_order, q.tree);      
+            FilterVertices::sortCandidates(q.candidates, q.candidates_count, q.query_graph.getVerticesCount());
+
+            for (ui i = 0; i < q.query_graph.getVerticesCount(); ++i)
+            {
+                q.max_candidate_cnt = std::max(q.max_candidate_cnt, q.candidates_count[i]);
+            }
+
+            std::cout << " MAX CANDS : " << q.max_candidate_cnt << std::endl;
+
+        } 
+        else if(q.cur_stage_num == STAGE_2) 
+        {
+
             GenerateQueryPlan::generateGQLQueryPlan(data_graph, q.query_graph, q.candidates_count, 
                                                     q.matching_order, q.pivot);
 
             std::cout<<"======= print matching order =========="<<std::endl;
-            for(int i=0; i<q.query_graph.getVerticesCount(); i++) {
+            for(ui i=0; i<q.query_graph.getVerticesCount(); i++) {
                 std::cout<<q.matching_order[i]<<" ";
             }
             std::cout<<std::endl;
@@ -695,7 +820,7 @@ public:
             generateBN(q.query_graph, q.matching_order, q.bn, q.bn_count);
 
             q.edge_matrix = new Edges **[q.query_graph.getVerticesCount()];
-            for (int i = 0; i < q.query_graph.getVerticesCount(); ++i) {
+            for (ui i = 0; i < q.query_graph.getVerticesCount(); ++i) {
                 q.edge_matrix[i] = new Edges *[q.query_graph.getVerticesCount()];
             }
             
@@ -705,7 +830,29 @@ public:
             computeAncestor(q.query_graph, q.bn, q.bn_count, q.matching_order, q.ancestors);
 #endif
             
-        } else {
+        } 
+        else 
+        {
+            if (temp_buffer == NULL)
+            {
+                // allocate space for temp_buffer array
+                temp_buffer = new ui[q.max_candidate_cnt];
+
+                // allocate space for visited_arr array
+                visited_arr = new bool[data_graph.getVerticesCount()];
+                memset(visited_arr, false, sizeof(bool)*data_graph.getVerticesCount());
+
+                // allocate space for idx and idx_count array
+                idx = new ui[q.query_graph.getVerticesCount()];
+                idx_count = new ui[q.query_graph.getVerticesCount()];
+
+                // allocate space for valid candidate 2-dimensional array
+                valid_candidate_idx = new ui*[q.query_graph.getVerticesCount()];
+                for (ui i = 0; i < q.query_graph.getVerticesCount(); ++i) {
+                    valid_candidate_idx[i] = new ui[q.max_candidate_cnt];
+                }
+            }            
+
 #ifdef ENABLE_FAILING_SET
             ftime(&data_graph.gtime_start[thread_id]);
             counter = q.counters[thread_id];
@@ -719,12 +866,19 @@ public:
 #else
             ftime(&data_graph.gtime_start[thread_id]);
             counter = q.counters[thread_id];
-            backtrack(context.cur_depth, q.query_graph, q.candidates, q.candidates_count, q.edge_matrix,
-            q.matching_order, context.valid_candidate_cnt, context.valid_candidate_idx, 
-            context.embedding, context.idx_embedding, context.visited, q.bn, q.bn_count, gfpout, q);
 
-            // LFTJ(q.query_graph, q.edge_matrix, q.candidates, q.candidates_count, q.bfs_order, context.embedding, 
-            //         context.idx_embedding, q.bn, q.bn_count, q);
+
+            // backtrack(context.cur_depth, q.query_graph, q.candidates, q.candidates_count, q.edge_matrix,
+            // q.matching_order, context.valid_candidate_cnt, context.valid_candidate_idx, 
+            // context.embedding, context.idx_embedding, context.visited, q.bn, q.bn_count, gfpout, q);
+
+            // std::cout<<"backtrack"<<std::endl;q
+
+            LFTJ(context.cur_depth, q.query_graph, q.edge_matrix, q.candidates, q.candidates_count, q.matching_order, context.embedding, 
+                    context.idx_embedding, q.bn, q.bn_count, q);
+
+            // std::cout<<"LFTJ"<<std::endl;
+
             q.counters[thread_id] = counter;
 #endif
         }
@@ -742,7 +896,7 @@ public:
             double totaltime = q.end_t.time-q.start_t.time+(double)(q.end_t.millitm-q.start_t.millitm)/1000;
             cout<<"Query "<<get_queryID()<<" total time: "<<totaltime<<endl;
             ULL total_results = 0;
-            for(int i=0; i<32; i++)
+            for(ui i=0; i<32; i++)
             {
                 total_results += q.counters[i];
             }
@@ -762,8 +916,8 @@ public:
 class GMWorker : public Worker<GMComper>
 {
 public:
-    GMWorker(int num_compers) : Worker(num_compers)
-    {     
+    GMWorker(ui num_compers) : Worker(num_compers)
+    {
     }
 
     ~GMWorker()
