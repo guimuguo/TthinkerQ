@@ -475,14 +475,14 @@ public:
                     counter += 1;
 
                     // print first 10000 results
-                    if (counter < 10000)
-                    {
-                        for(ui i = 0; i < max_depth; ++i)
-                        {
-                            cout << embedding[i] << " ";
-                        }
-                        cout << endl;
-                    }
+                    // if (counter < 10000)
+                    // {
+                    //     for(ui i = 0; i < max_depth; ++i)
+                    //     {
+                    //         cout << embedding[i] << " ";
+                    //     }
+                    //     cout << endl;
+                    // }
 
                     visited_arr[v] = false;
                     
