@@ -7,7 +7,7 @@
 #include <cstdlib>
 #include <string>
 
-#define GEN_GRAPH
+// #define GEN_GRAPH
 
 using namespace std;
 
