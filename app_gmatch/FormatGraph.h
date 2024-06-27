@@ -337,12 +337,16 @@ public:
 
     void ReMapVertexId();
 
+    void sampleQueryGraph(const std::string &filename);
+
 
 private:
     uintE *row_ptrs_;
     uintV *cols_;
     size_t vertex_count_;
     size_t edge_count_;
+
+    std::vector<int> labels;
 };
 
 FormatGraph::FormatGraph(const std::string &filename)
@@ -779,7 +783,8 @@ void FormatGraph::writeGraphFile(const std::string &filename)
     std::ofstream file_out(output_filename);
     file_out << "t " << vertex_count_ << " " << edge_count_ / 2 << '\n';
 
-    std::vector<int> labels(vertex_count_);
+    // std::vector<int> labels(vertex_count_);
+    labels.resize(vertex_count_);
 
     for (uintV i = 0; i < vertex_count_; ++i)
     {
@@ -802,6 +807,116 @@ void FormatGraph::writeGraphFile(const std::string &filename)
 
     timer.EndTimer();
     timer.PrintElapsedMicroSeconds("writing Graph file");
+}
+
+void FormatGraph::sampleQueryGraph(const std::string &filename) {
+
+    std::unordered_set<uintV> contained_vertices;
+    std::unordered_map<uintV, std::vector<uintV> > query_adj;
+    std::unordered_map<uintV, uintV> vid2int;
+    std::unordered_map<uintV, uintV> int2vid;
+    uintV newId = 0, num_q_edges=0;
+    uintV qcnt = 0;
+
+    std::ofstream fout;
+    char file[100];
+    
+    while(qcnt < QUERY_GRAPH_NUM) {
+
+        sprintf(file, "/query_graph_%d_%d.graph", QUERY_GRAPH_SIZE, qcnt);
+        fout.open(filename + std::string(file));
+
+        uintV rand_vtx = rand() % vertex_count_;
+        contained_vertices.insert(rand_vtx);
+        uintV nxt_rand_vtx;
+        bool try_flag = true;
+
+        while(contained_vertices.size() < QUERY_GRAPH_SIZE) 
+        {
+            uintV deg = row_ptrs_[rand_vtx + 1] - row_ptrs_[rand_vtx];
+            if (deg == 0) {
+                try_flag = false;
+                break;
+            }
+            nxt_rand_vtx = cols_[row_ptrs_[rand_vtx] + rand() % deg];
+            if (contained_vertices.find(nxt_rand_vtx) != contained_vertices.end()) {
+                try_flag = false;
+                break;
+            }
+            contained_vertices.insert(nxt_rand_vtx);
+            rand_vtx = nxt_rand_vtx;
+        }
+        if(!try_flag) {
+            contained_vertices.clear();
+            fout.close();
+            continue;
+        }
+        
+        for(auto& ve: contained_vertices)
+        {
+            vid2int[ve] = newId;
+            int2vid[newId] = ve;
+            newId++;
+
+            for(uintE j = row_ptrs_[ve]; j < row_ptrs_[ve+1]; j++) {
+                uintV ne = cols_[j];
+                if(ne > ve && contained_vertices.find(ne) != contained_vertices.end()) {
+                    double r = (rand()%100)/100;
+                    if(r < ADD_PROB) {
+                        if (query_adj.find(ve) == query_adj.end())
+                            query_adj[ve] = std::vector<uintV>();
+                        if (query_adj.find(ne) == query_adj.end())
+                            query_adj[ne] = std::vector<uintV>();
+                        query_adj[ve].push_back(ne);
+                        query_adj[ne].push_back(ve);
+                        
+                        num_q_edges++;
+                    }
+                }
+            }
+        }
+        for(auto& ve: contained_vertices)
+            sort(query_adj[ve].begin(), query_adj[ve].end(), [&vid2int](const int& x, const int& y) {
+                return vid2int[x] < vid2int[y];
+            });
+
+        if(num_q_edges < 15) 
+        {
+            contained_vertices.clear();
+            fout.close();
+            query_adj.clear();
+            int2vid.clear();
+            vid2int.clear();
+            num_q_edges = 0;
+            newId = 0;
+            continue;
+        }
+
+        fout << "t "<< QUERY_GRAPH_SIZE <<" "<< num_q_edges << std::endl;
+        for(int i=0; i<QUERY_GRAPH_SIZE; i++) 
+        {
+            int ve = int2vid[i];
+            int deg = query_adj[ve].size();
+            fout<<"v "<<i<< " "<< labels[ve] << " " <<deg<< std::endl;
+        }
+        for(int i=0; i<QUERY_GRAPH_SIZE; i++) 
+        {
+            int ve = int2vid[i];
+            for(auto &ne: query_adj[ve]) {
+                if(vid2int[ne] > i) {
+                    fout<<"e "<<i<<" "<<vid2int[ne]<< std::endl;
+                }
+            }
+        }
+        fout.close();
+        contained_vertices.clear();
+        query_adj.clear();
+        int2vid.clear();
+        vid2int.clear();
+        num_q_edges = 0;
+        newId = 0;
+        qcnt++;
+    }
 }
 
 void FormatGraph::Preprocess() {
