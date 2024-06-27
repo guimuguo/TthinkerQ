@@ -18,6 +18,7 @@ int main(int argc, char *argv[])
 {
 
     std::string file_path = "/home/lyuheng/TKDE-revise/TthinkerQ/data/data_graphs/com-amazon.ungraph.graph";
+    char * file_path_c =    "/home/lyuheng/TKDE-revise/TthinkerQ/data/data_graphs/com-amazon.ungraph.graph";
     
 #ifdef GEN_GRAPH
     // char *file_path = "/home/lyuan/graph_data/GSE10158_q";
@@ -36,7 +37,7 @@ int main(int argc, char *argv[])
     int num_compers = 32;
 
     GMWorker worker(num_compers);
-    worker.load_data(file_path.c_str());
+    worker.load_data(file_path_c);
 
     worker.run();
 #endif
