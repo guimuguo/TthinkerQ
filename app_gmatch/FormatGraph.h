@@ -897,7 +897,7 @@ void FormatGraph::sampleQueryGraph(const std::string &filename) {
         {
             int ve = int2vid[i];
             int deg = query_adj[ve].size();
-            fout<<"v "<<i<< " "<< labels[ve] << " " <<deg<< std::endl;
+            fout<<"v "<<i<< " "<< "0" << " " <<deg<< std::endl;
         }
         for(int i=0; i<QUERY_GRAPH_SIZE; i++) 
         {
