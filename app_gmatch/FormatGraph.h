@@ -333,6 +333,8 @@ public:
     void writeBinFile(const std::string &filename);
     void writeGraphFile(const std::string &filename);
 
+    void writePeregrineFile(const std::string &filename);
+
     void Preprocess();
 
     void ReMapVertexId();
@@ -807,6 +809,43 @@ void FormatGraph::writeGraphFile(const std::string &filename)
 
     timer.EndTimer();
     timer.PrintElapsedMicroSeconds("writing Graph file");
+}
+
+void FormatGraph::writePeregrineFile(const std::string &filename) 
+{
+    std::string prefix = filename.substr(0, filename.rfind("."));
+
+    Timer timer;
+    timer.StartTimer();
+    std::cout << "start write Graph file...." << std::endl;
+    std::string output_filename = prefix + ".peregrine.edges.txt";
+
+    {
+        std::ofstream file_out(output_filename);
+        for (uintV i = 0; i < vertex_count_; ++i)
+        {
+            for (uintE j = row_ptrs_[i]; j < row_ptrs_[i + 1]; ++j)
+            {
+                if (i < cols_[j])
+                    file_out << i << " " << cols_[j] << '\n';
+            }
+        }
+        file_out.close();
+    }
+
+    
+    output_filename = prefix + ".peregrine.labels.txt";
+    {
+        std::ofstream file_out(output_filename);
+        for (uintV i = 0; i < vertex_count_; ++i)
+        {
+            file_out << i << " " << labels[i] << '\n';
+        }
+        file_out.close();
+    }
+
+    timer.EndTimer();
+    timer.PrintElapsedMicroSeconds("writing Peregrine file");
 }
 
 void FormatGraph::sampleQueryGraph(const std::string &filename) {
