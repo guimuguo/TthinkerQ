@@ -335,6 +335,8 @@ public:
 
     void writePeregrineFile(const std::string &filename);
 
+    void writeQuasiCliqueFile(const std::string &filename);
+
     void Preprocess();
 
     void ReMapVertexId();
@@ -846,6 +848,29 @@ void FormatGraph::writePeregrineFile(const std::string &filename)
 
     timer.EndTimer();
     timer.PrintElapsedMicroSeconds("writing Peregrine file");
+}
+
+void FormatGraph::writeQuasiCliqueFile(const std::string &filename)
+{
+    std::string prefix = filename.substr(0, filename.rfind("."));
+    Timer timer;
+    timer.StartTimer();
+    std::cout << "start write QuasiClique file...." << std::endl;
+    std::string output_filename = prefix + "_q";
+
+    std::ofstream file_out(output_filename);
+    for (uintV i = 0; i < vertex_count_; ++i)
+    {
+        for (uintE j = row_ptrs_[i]; j < row_ptrs_[i + 1]; ++j)
+        {
+            file_out << cols_[j] << ' ';
+        }
+        file_out << '\n';
+    }
+    file_out.close();
+    
+    timer.EndTimer();
+    timer.PrintElapsedMicroSeconds("writing QuasiClique file");
 }
 
 void FormatGraph::sampleQueryGraph(const std::string &filename) {
