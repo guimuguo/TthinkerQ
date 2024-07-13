@@ -52,6 +52,9 @@ int main(int argc, char *argv[])
 	if(server_exit)
 		client.send_msg(type, "server_exit");
 
+
+	std::vector<double> latency;
+
 	//all queries sent, obtain the answers
 	while(query_num > 0)
 	{
@@ -62,12 +65,18 @@ int main(int argc, char *argv[])
 			char* notif=receiver.get_msg();
 			pch=strtok(notif, "\n");
 			cout<<"[INFO] Query "<<pch<<" is done."<<endl;
+
+			latency.push_back(get_current_time()-start_time);
 			//------
 			query_num--;
 		}
 		while(receiver.recv_msg(type));
 	}
 	cout<<"Total query processing time: "<<(get_current_time()-start_time)<<" seconds"<<endl;
+
+	double latency_sum = 0;
+	for (int i=0; i<latency.size(); ++i) latency_sum += latency[i];
+	cout <<"Average latency: " << latency_sum/latency.size() <<" seconds" << endl;
 	//----
 	return 0;
 }
