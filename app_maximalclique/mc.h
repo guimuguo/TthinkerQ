@@ -143,6 +143,7 @@ public:
 
     virtual void compute(ContextT &context, MCQuery &q)
     {
+        ftime(&data_graph.gtime_start[thread_id]);
         BK(context.R, context.P, context.X);
     }
 };
