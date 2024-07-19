@@ -21,16 +21,16 @@ struct ContextValue
 
 ofbinstream & operator>>(ofbinstream & m, ContextValue & c)
 {
-    m >> R;
-    m >> P;
-    m >> X;
+    m >> c.R;
+    m >> c.P;
+    m >> c.X
     return m;
 }
 ifbinstream & operator<<(ifbinstream & m, const ContextValue & c) 
 {
-    m << R;
-    m << P;
-    m << X;
+    m << c.R;
+    m << c.P;
+    m << c.X;
     return m;
 }
 
@@ -47,7 +47,7 @@ struct MCQuery
 
 typedef Task<ContextValue> MCTask;
 
-void ordered_insert(vector<int> & newR, int to_add)
+void ordered_insert(vector<ui> & newR, ui to_add)
 {
 	auto it = newR.begin();
 	for ( ; it != newR.end(); ++it) {
@@ -80,10 +80,10 @@ class MCComper: public Comper<MCTask, MCQuery>
             for (int j=0; j<nbr_count; ++j)
             {
                 const ui neighbor = nbrs[j];
-                if (nbr < i)
-                    X.push_back(nbr);
+                if (neighbor < i)
+                    X.push_back(neighbor);
                 else 
-                    R.push_back(nbr);
+                    R.push_back(neighbor);
             }
             MCTask *t = new MCTask();
             t->context.R = move(R);
@@ -110,12 +110,12 @@ class MCComper: public Comper<MCTask, MCQuery>
 
             ui nbr_count;
             const ui *nbrs = getVertexNeighbors(v, nbr_count);
-            vector<int> tmp(nbrs, nbrs + nbr_count);
+            vector<ui> tmp(nbrs, nbrs + nbr_count);
 
-            vector<int> newP;
+            vector<ui> newP;
 			set_intersection(tmp.begin(), tmp.end(), P.begin() + i, P.end(), back_inserter(newP));
 
-            vector<int> newX;
+            vector<ui> newX;
 			set_intersection(tmp.begin(), tmp.end(), X.begin(), X.end(), back_inserter(newX));
 
             BK(newR, newP, newX);
@@ -133,11 +133,11 @@ class MCComper: public Comper<MCTask, MCQuery>
 class MCWorker : public Worker<MCComper>
 {
 public:
-    GMWorker(ui num_compers) : Worker(num_compers)
+    MCWorker(ui num_compers) : Worker(num_compers)
     {
     }
 
-    ~GMWorker()
+    ~MCWorker()
     {
     }
 
