@@ -7,7 +7,7 @@
 #include <vector>
 using namespace std;
 
-#define TIME_THRESHOLD 0
+#define TIME_THRESHOLD 0.1
 
 
 Graph data_graph;
@@ -135,7 +135,6 @@ public:
                 t->context.P = move(newP);
                 t->context.X = move(newX);
                 add_task(t);
-                cout << "add a task " << endl;
             }
 
             X.push_back(v);
