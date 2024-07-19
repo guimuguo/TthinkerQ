@@ -23,7 +23,7 @@ ofbinstream & operator>>(ofbinstream & m, ContextValue & c)
 {
     m >> c.R;
     m >> c.P;
-    m >> c.X
+    m >> c.X;
     return m;
 }
 ifbinstream & operator<<(ifbinstream & m, const ContextValue & c) 
@@ -62,17 +62,20 @@ void ordered_insert(vector<ui> & newR, ui to_add)
 
 class MCComper: public Comper<MCTask, MCQuery>
 {
+
+    MCComper() {}
+
     virtual bool toQuery(string& line, MCQuery& q)
     {
         q.src = stoi(line);
         return true;
     }
 
-    virtual bool task_spawn(GMQuery &q)
+    virtual bool task_spawn(MCQuery &q)
     {
         // for(ui i=0; i<data_graph.getVerticesCount(); i++)
         // {
-            ui i = q.src;
+            ui i = (ui)q.src;
             vector<ui> R {i};
             vector<ui> P, X;
             ui nbr_count;
@@ -109,7 +112,7 @@ class MCComper: public Comper<MCTask, MCQuery>
             ordered_insert(newR, v);
 
             ui nbr_count;
-            const ui *nbrs = getVertexNeighbors(v, nbr_count);
+            const ui *nbrs = data_graph.getVertexNeighbors(v, nbr_count);
             vector<ui> tmp(nbrs, nbrs + nbr_count);
 
             vector<ui> newP;
