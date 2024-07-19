@@ -39,7 +39,7 @@ struct MCQuery
     ui src;
     vector<ULL> counters;
 
-    GMQuery() 
+    MCQuery()
     {
         counters.assign(32, 0);
     }
