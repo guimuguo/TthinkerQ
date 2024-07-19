@@ -83,10 +83,7 @@ public:
             for (int j=0; j<nbr_count; ++j)
             {
                 const ui neighbor = nbrs[j];
-                if (neighbor < i)
-                    X.push_back(neighbor);
-                else 
-                    R.push_back(neighbor);
+                P.push_back(neighbor);
             }
             MCTask *t = new MCTask();
             t->context.R = move(R);
