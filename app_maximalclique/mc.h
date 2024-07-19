@@ -41,7 +41,8 @@ struct MCQuery
     ui src;
     vector<ULL> counters;
 
-    struct timeb start_t, end_t;
+    struct timeb start_t;
+    struct timeb end_t;
 
     MCQuery()
     {
