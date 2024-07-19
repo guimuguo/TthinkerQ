@@ -62,7 +62,7 @@ void ordered_insert(vector<ui> & newR, ui to_add)
 
 class MCComper: public Comper<MCTask, MCQuery>
 {
-
+public:
     MCComper() {}
 
     virtual bool toQuery(string& line, MCQuery& q)
