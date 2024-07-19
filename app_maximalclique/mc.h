@@ -113,6 +113,7 @@ public:
             // cout << "************** ";
             // for (auto x: R) cout << x << ' ';
             // cout << endl;
+            counter++;
             return;
         }
         for (ui i=0; i<P.size(); ++i)
