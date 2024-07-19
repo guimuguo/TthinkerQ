@@ -155,7 +155,7 @@ public:
         q.counters[thread_id] = counter;
     }
 
-    virtual bool postprocess(GMQuery &q)
+    virtual bool postprocess(MCQuery &q)
     {
         
         ftime(&q.end_t);
