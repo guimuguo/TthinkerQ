@@ -135,6 +135,7 @@ public:
                 t->context.P = move(newP);
                 t->context.X = move(newX);
                 add_task(t);
+                cout << "add a task " << endl;
             }
 
             X.push_back(v);
