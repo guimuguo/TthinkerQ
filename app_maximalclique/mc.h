@@ -90,6 +90,7 @@ public:
             t->context.P = move(P);
             t->context.X = move(X);
             add_task(t);
+            return true;
         // }
     }
 
