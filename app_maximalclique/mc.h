@@ -128,8 +128,8 @@ public:
 
     void BK(vector<ui> &R, vector<ui> &P, vector<ui> &X, MCQuery &q)
     {
-        struct timeb cur_time;
-		double drun_time;
+        // struct timeb cur_time;
+		// double drun_time;
 
         if (P.size() == 0 && X.size() == 0)
         {
@@ -159,18 +159,18 @@ public:
 			// set_intersection(tmp.begin(), tmp.end(), X.begin(), X.end(), back_inserter(newX));
             set_intersection(nbrs, nbrs+nbr_count, X.data(), X.data() + X.size(), newX);
 
-            ftime(&cur_time);
-            drun_time = cur_time.time-data_graph.gtime_start[thread_id].time+(double)(cur_time.millitm-data_graph.gtime_start[thread_id].millitm)/1000;
+            // ftime(&cur_time);
+            // drun_time = cur_time.time-data_graph.gtime_start[thread_id].time+(double)(cur_time.millitm-data_graph.gtime_start[thread_id].millitm)/1000;
 
-            if(drun_time < TIME_THRESHOLD) {
+            // if(drun_time < TIME_THRESHOLD) {
                 BK(newR, newP, newX, q);
-            } else {
-                MCTask *t = new MCTask();
-                t->context.R = move(newR);
-                t->context.P = move(newP);
-                t->context.X = move(newX);
-                add_task(t);
-            }
+            // } else {
+            //     MCTask *t = new MCTask();
+            //     t->context.R = move(newR);
+            //     t->context.P = move(newP);
+            //     t->context.X = move(newX);
+            //     add_task(t);
+            // }
             X.push_back(v);
         }
     }
