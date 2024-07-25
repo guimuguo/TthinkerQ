@@ -93,6 +93,7 @@ public:
             vector<ui> P, X;
             ui nbr_count;
             const ui *nbrs = data_graph.getVertexNeighbors(i, nbr_count);
+            cout << "-----------" << i << ", " << nbr_count << endl;
             for (int j=0; j<nbr_count; ++j)
             {
                 const ui neighbor = nbrs[j];
