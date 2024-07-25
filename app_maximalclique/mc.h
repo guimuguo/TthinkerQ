@@ -87,7 +87,6 @@ public:
     {
         // for(ui i=0; i<data_graph.getVerticesCount(); i++)
         // {
-            q.start_t = std::chrono::steady_clock::now();
             ui i = (ui)q.src;
             vector<ui> R {i};
             vector<ui> P, X;
@@ -105,6 +104,7 @@ public:
             t->context.X = move(X);
             add_task(t);
             // ftime(&q.start_t);
+            q.start_t = std::chrono::steady_clock::now();
             return true;
         // }
     }
