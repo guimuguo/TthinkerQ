@@ -33,7 +33,7 @@ atomic<bool> global_end_label(false);
 bool server_exit = false;
 
 // In micro sec
-#define WAIT_TIME_WHEN_IDLE 100000
+#define WAIT_TIME_WHEN_IDLE 10
 
 //output path
 string out_path = "ol_out";
