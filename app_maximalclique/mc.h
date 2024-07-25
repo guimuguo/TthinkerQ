@@ -109,6 +109,23 @@ public:
         // }
     }
 
+    
+    void set_intersection(const ui *first1, const ui *last1,
+                          const ui *first2, const ui *last2,
+                            vector<ui> &out)
+    {
+        while (first1!=last1 && first2!=last2)
+        {
+            if (*first1<*first2) ++first1;
+            else if (*first2<*first1) ++first2;
+            else {
+                out.push_back(*first1);
+                ++first1; 
+                ++first2;
+            }
+        }
+    }
+
     void BK(vector<ui> &R, vector<ui> &P, vector<ui> &X, MCQuery &q)
     {
         struct timeb cur_time;
@@ -132,13 +149,15 @@ public:
 
             ui nbr_count;
             const ui *nbrs = data_graph.getVertexNeighbors(v, nbr_count);
-            vector<ui> tmp(nbrs, nbrs + nbr_count);
+            // vector<ui> tmp(nbrs, nbrs + nbr_count);
 
             vector<ui> newP;
-			set_intersection(tmp.begin(), tmp.end(), P.begin() + i, P.end(), back_inserter(newP));
+			// set_intersection(tmp.begin(), tmp.end(), P.begin() + i, P.end(), back_inserter(newP));
+            set_intersection(nbrs, nbrs+nbr_count, P.data() + i, P.data() + P.size(), newP)
 
             vector<ui> newX;
-			set_intersection(tmp.begin(), tmp.end(), X.begin(), X.end(), back_inserter(newX));
+			// set_intersection(tmp.begin(), tmp.end(), X.begin(), X.end(), back_inserter(newX));
+            set_intersection(nbrs, nbrs+nbr_count, X.data(), X.data() + X.size(), newX)
 
             ftime(&cur_time);
             drun_time = cur_time.time-data_graph.gtime_start[thread_id].time+(double)(cur_time.millitm-data_graph.gtime_start[thread_id].millitm)/1000;
