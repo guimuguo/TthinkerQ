@@ -9,6 +9,8 @@ using namespace std;
 
 #define TIME_THRESHOLD 0.1
 
+ using namespace std::chrono;
+
 
 Graph data_graph;
 
@@ -41,8 +43,10 @@ struct MCQuery
     ui src;
     vector<ULL> counters;
 
-    struct timeb start_t;
-    struct timeb end_t;
+    // struct timeb start_t;
+    // struct timeb end_t;
+
+    std::chrono::time_point<std::chrono::steady_clock> start_t, end_t;
 
     MCQuery()
     {
@@ -97,7 +101,8 @@ public:
             t->context.P = move(P);
             t->context.X = move(X);
             add_task(t);
-            ftime(&q.start_t);
+            // ftime(&q.start_t);
+            q.start_t = std::chrono::steady_clock::now();
             return true;
         // }
     }
@@ -159,9 +164,10 @@ public:
     virtual bool postprocess(MCQuery &q)
     {
         
-        ftime(&q.end_t);
+        // ftime(&q.end_t);
+        q.end_t = std::chrono::steady_clock::now();
         double totaltime = q.end_t.time-q.start_t.time+(double)(q.end_t.millitm-q.start_t.millitm)/1000;
-        cout<<"Query "<<get_queryID()<<" total time: "<<totaltime<<endl;
+        cout<<"Query "<<get_queryID()<<" total time (us): "<<std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()<<endl;
         ULL total_results = 0;
         for(ui i=0; i<32; i++)
         {
