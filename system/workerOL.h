@@ -196,7 +196,7 @@ public:
         while (global_end_label == false)
         {
             // Avoid busy-checking
-            usleep(WAIT_TIME_WHEN_IDLE);
+            // usleep(WAIT_TIME_WHEN_IDLE);
 
             if(!server_exit)//will not recieve new queries after "server_exit"
             {
