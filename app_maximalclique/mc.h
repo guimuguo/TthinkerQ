@@ -119,7 +119,7 @@ public:
             // cout << "************** ";
             // for (auto x: R) cout << x << ' ';
             // cout << endl;
-            q.max_sz = q.max_sz > X.size() ? q.max_sz : X.size();
+            q.max_sz = q.max_sz > R.size() ? q.max_sz : R.size();
             counter++;
             return;
         }
