@@ -153,11 +153,11 @@ public:
 
             vector<ui> newP;
 			// set_intersection(tmp.begin(), tmp.end(), P.begin() + i, P.end(), back_inserter(newP));
-            set_intersection(nbrs, nbrs+nbr_count, P.data() + i, P.data() + P.size(), newP)
+            set_intersection(nbrs, nbrs+nbr_count, P.data() + i, P.data() + P.size(), newP);
 
             vector<ui> newX;
 			// set_intersection(tmp.begin(), tmp.end(), X.begin(), X.end(), back_inserter(newX));
-            set_intersection(nbrs, nbrs+nbr_count, X.data(), X.data() + X.size(), newX)
+            set_intersection(nbrs, nbrs+nbr_count, X.data(), X.data() + X.size(), newX);
 
             ftime(&cur_time);
             drun_time = cur_time.time-data_graph.gtime_start[thread_id].time+(double)(cur_time.millitm-data_graph.gtime_start[thread_id].millitm)/1000;
