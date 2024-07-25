@@ -108,7 +108,7 @@ public:
         // }
     }
 
-    void BK(vector<ui> &R, vector<ui> &P, vector<ui> &X)
+    void BK(vector<ui> &R, vector<ui> &P, vector<ui> &X, MCQuery &q)
     {
         struct timeb cur_time;
 		double drun_time;
@@ -143,7 +143,7 @@ public:
             drun_time = cur_time.time-data_graph.gtime_start[thread_id].time+(double)(cur_time.millitm-data_graph.gtime_start[thread_id].millitm)/1000;
 
             if(drun_time < TIME_THRESHOLD) {
-                BK(newR, newP, newX);
+                BK(newR, newP, newX, q);
             } else {
                 MCTask *t = new MCTask();
                 t->context.R = move(newR);
@@ -159,7 +159,7 @@ public:
     {
         ftime(&data_graph.gtime_start[thread_id]);
         counter = q.counters[thread_id];
-        BK(context.R, context.P, context.X);
+        BK(context.R, context.P, context.X, q);
         q.counters[thread_id] = counter;
     }
 
