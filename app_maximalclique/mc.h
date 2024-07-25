@@ -166,7 +166,7 @@ public:
         
         // ftime(&q.end_t);
         q.end_t = std::chrono::steady_clock::now();
-        double totaltime = q.end_t.time-q.start_t.time+(double)(q.end_t.millitm-q.start_t.millitm)/1000;
+        // double totaltime = q.end_t.time-q.start_t.time+(double)(q.end_t.millitm-q.start_t.millitm)/1000;
         cout<<"Query "<<get_queryID()<<" total time (us): "<<std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()<<endl;
         ULL total_results = 0;
         for(ui i=0; i<32; i++)
