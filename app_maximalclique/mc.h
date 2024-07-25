@@ -47,6 +47,7 @@ struct MCQuery
     // struct timeb end_t;
 
     std::chrono::time_point<std::chrono::steady_clock> start_t, end_t;
+    ui max_sz = 0;
 
     MCQuery()
     {
@@ -118,6 +119,7 @@ public:
             // cout << "************** ";
             // for (auto x: R) cout << x << ' ';
             // cout << endl;
+            max_sz = max_sz > X.size() ? max_sz : X.size();
             counter++;
             return;
         }
@@ -173,7 +175,7 @@ public:
         {
             total_results += q.counters[i];
         }
-        cout<<"Query "<<get_queryID()<<" total count: "<< total_results <<endl;
+        cout<<"Query "<<get_queryID()<<" total count: "<< total_results << ", max size: " << q.max_sz <<endl;
 
         return false;
     }
