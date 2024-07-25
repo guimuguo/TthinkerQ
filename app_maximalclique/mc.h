@@ -75,7 +75,6 @@ public:
     virtual bool toQuery(string& line, MCQuery& q)
     {
         q.src = stoi(line);
-        ftime(&q.start_t);
         return true;
     }
 
@@ -98,6 +97,7 @@ public:
             t->context.P = move(P);
             t->context.X = move(X);
             add_task(t);
+            ftime(&q.start_t);
             return true;
         // }
     }
