@@ -82,33 +82,6 @@ public:
         q.src = stoi(line);
         return true;
     }
-
-    virtual bool task_spawn(MCQuery &q)
-    {
-        // for(ui i=0; i<data_graph.getVerticesCount(); i++)
-        // {
-            ui i = (ui)q.src;
-            vector<ui> R {i};
-            vector<ui> P, X;
-            ui nbr_count;
-            const ui *nbrs = data_graph.getVertexNeighbors(i, nbr_count);
-            cout << "-----------" << i << ", " << nbr_count << endl;
-            for (int j=0; j<nbr_count; ++j)
-            {
-                const ui neighbor = nbrs[j];
-                P.push_back(neighbor);
-            }
-            MCTask *t = new MCTask();
-            t->context.R = move(R);
-            t->context.P = move(P);
-            t->context.X = move(X);
-            add_task(t);
-            // ftime(&q.start_t);
-            q.start_t = std::chrono::steady_clock::now();
-            return true;
-        // }
-    }
-
     
     void set_intersection(const ui *first1, const ui *last1,
                           const ui *first2, const ui *last2,
@@ -125,6 +98,34 @@ public:
             }
         }
     }
+
+    virtual bool task_spawn(MCQuery &q)
+    {
+        // for(ui i=0; i<data_graph.getVerticesCount(); i++)
+        // {
+            ui i = (ui)q.src;
+            vector<ui> R {i};
+            vector<ui> P, X;
+            ui nbr_count;
+            const ui *nbrs = data_graph.getVertexNeighbors(i, nbr_count);
+            // cout << "-----------" << i << ", " << nbr_count << endl;
+            for (int j=0; j<nbr_count; ++j)
+            {
+                const ui neighbor = nbrs[j];
+                P.push_back(neighbor);
+            }
+            MCTask *t = new MCTask();
+            t->context.R = move(R);
+            t->context.P = move(P);
+            t->context.X = move(X);
+            add_task(t);
+            // ftime(&q.start_t);
+            q.start_t = std::chrono::steady_clock::now();
+            return true;
+        // }
+    }
+
+
 
     void BK(vector<ui> &R, vector<ui> &P, vector<ui> &X, MCQuery &q)
     {

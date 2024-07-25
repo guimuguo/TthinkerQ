@@ -1,5 +1,5 @@
 CCOMPILE=g++ 
-CPPFLAGS=-lpthread -march=native -g
+CPPFLAGS=-lpthread -march=native -O2
 
 all: run
 
