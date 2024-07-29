@@ -136,7 +136,7 @@ public:
         {
             // report R;
             string to_output = "************** ";
-            for (auto x: R) to_output += x + ' ';
+            for (auto x: R) to_output += to_string(x) + ' ';
             cout << to_output << endl;
             
             // cout << "************** ";
