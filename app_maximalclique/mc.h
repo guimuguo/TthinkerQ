@@ -135,9 +135,9 @@ public:
         if (P.size() == 0 && X.size() == 0)
         {
             // report R;
-            string to_output = "************** ";
-            for (auto x: R) to_output += to_string(x) + ' ';
-            cout << to_output << endl;
+            // string to_output = "************** ";
+            // for (auto x: R) to_output += to_string(x) + ' ';
+            // cout << to_output << endl;
             
             // cout << "************** ";
             // for (auto x: R) cout << x << ' ';
