@@ -7,7 +7,7 @@
 #include <vector>
 using namespace std;
 
-#define TIME_THRESHOLD 0.01
+#define TIME_THRESHOLD 1
 
  using namespace std::chrono;
 
